@@ -12,16 +12,19 @@ import java.net.UnknownHostException;
 import java.util.Enumeration;
 
 /**
- * Implements basic server features
+ * Implements basic server features,
+ * in a dedicated thread.
  * 
  * @author Yohan Chalier
  *
  */
-public class Server extends ServerSocket {
+public class Server extends Thread {
 	
 	private static final int DEFAULT_BACKLOG = 0;
 	private static final int DEFAULT_PORT = 80;
-		
+	
+	private ServerSocket server;
+	
 	public Server()
 			throws UnknownHostException, IOException {
 		this(selectPort());
@@ -34,39 +37,43 @@ public class Server extends ServerSocket {
 	
 	public Server(int port, InetAddress bindAddr)
 			throws IOException {
-		super(port, DEFAULT_BACKLOG, bindAddr);
+		server = new ServerSocket(port, DEFAULT_BACKLOG, bindAddr);
 		System.out.println("Server hosted on "
 						   + bindAddr.getHostAddress()
 						   + ":" + port);
 	}
 
 	/**
-	 * Main loop of the server.
+	 * Main loop of the server
 	 * Listens for requests and replies.
 	 * 
 	 * @throws IOException Reading or writing in the connection stream
 	 */
-	public void run() throws IOException {
-				
+	public void run() {
+
 		while (true) {
-	    	
-			// Reading input
-	    	Socket socket = accept();
-	    	BufferedReader reader = new BufferedReader(
-	    			new InputStreamReader(socket.getInputStream()));
-			String request = reader.readLine();	
-			
-			//TODO log request
-			System.out.println(request);
-			
-			// Preparing response
-			String httpResponse = "HTTP/1.1 200 OK\r\n\r\n";
-			
-			// Answering request
-			socket.getOutputStream().write(httpResponse.getBytes("UTF-8"));
-			socket.close();
-	
+			try {
+				// Reading input
+		    	Socket socket = server.accept();
+		    	BufferedReader reader = new BufferedReader(
+		    			new InputStreamReader(socket.getInputStream()));
+				String request = reader.readLine();	
+				
+				//TODO log request
+				System.out.println(request);
+				
+				// Preparing response
+				String httpResponse = "HTTP/1.1 200 OK\r\n\r\n";
+				
+				// Answering request
+				socket.getOutputStream().write(httpResponse.getBytes("UTF-8"));
+				socket.close();
+			} catch (IOException e) {
+				//TODO handle exception nicely
+				System.out.println(e);
+			}
 	    }
+		
 	}
 	
 	/**
