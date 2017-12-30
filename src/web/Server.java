@@ -24,19 +24,22 @@ public class Server extends Thread {
 	private static final int DEFAULT_PORT = 80;
 	
 	private ServerSocket server;
+	private RequestHandler requestHandler;
 	
-	public Server()
+	public Server(RequestHandler requestHandler)
 			throws UnknownHostException, IOException {
-		this(selectPort());
+		this(requestHandler, selectPort());
 	}
 	
-	public Server(int port)
+	public Server(RequestHandler requestHandler, int port)
 			throws UnknownHostException, IOException{
-		this(port, selectBindAddress());
+		this(requestHandler, port, selectBindAddress());
 	}
 	
-	public Server(int port, InetAddress bindAddr)
+	public Server(RequestHandler requestHandler,
+				  int port, InetAddress bindAddr)
 			throws IOException {
+		this.requestHandler = requestHandler;
 		server = new ServerSocket(port, DEFAULT_BACKLOG, bindAddr);
 		System.out.println("Server hosted on "
 						   + bindAddr.getHostAddress()
@@ -63,7 +66,8 @@ public class Server extends Thread {
 				System.out.println(request);
 				
 				// Preparing response
-				String httpResponse = "HTTP/1.1 200 OK\r\n\r\n";
+				String httpResponse = "HTTP/1.1 200 OK\r\n\r\n"
+									+ requestHandler.getResponse(request);
 				
 				// Answering request
 				socket.getOutputStream().write(httpResponse.getBytes("UTF-8"));
