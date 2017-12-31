@@ -1,8 +1,6 @@
 package server;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.ServerSocket;
@@ -58,16 +56,10 @@ public class Server extends Thread {
 			try {
 				// Reading input
 		    	Socket socket = server.accept();
-		    	BufferedReader reader = new BufferedReader(
-		    			new InputStreamReader(socket.getInputStream()));
-				String request = reader.readLine();	
-				
-				//TODO log request
-				System.out.println(request);
-				
+		    	
 				// Preparing response
-				String httpResponse = "HTTP/1.1 200 OK\r\n\r\n"
-									+ requestHandler.getResponse(request);
+				String response = requestHandler.getResponse(socket);
+				String httpResponse = "HTTP/1.1 200 OK\r\n\r\n" + response;
 				
 				// Answering request
 				socket.getOutputStream().write(httpResponse.getBytes("UTF-8"));

@@ -1,5 +1,8 @@
 package server;
 
+import java.io.IOException;
+import java.net.Socket;
+
 /**
  * Used by the server to handle
  * received requests.
@@ -9,6 +12,6 @@ package server;
  */
 public interface RequestHandler {
 	
-	String getResponse(String request);
+	String getResponse(Socket socket) throws IOException;
 
 }
