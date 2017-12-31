@@ -1,6 +1,6 @@
 
-import web.RequestHandler;
-import web.Server;
+import server.RequestHandler;
+import server.Server;
 
 public class Main {
 

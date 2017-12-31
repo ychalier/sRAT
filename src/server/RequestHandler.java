@@ -1,4 +1,4 @@
-package web;
+package server;
 
 /**
  * Used by the server to handle
