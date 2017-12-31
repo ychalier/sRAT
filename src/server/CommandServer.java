@@ -13,7 +13,7 @@ import java.util.Set;
  * @author Yohan Chalier
  *
  */
-public class CommandServer implements RequestHandler {
+public class CommandServer implements RequestHandler, CommandHandler {
 	
 	private Set<InetAddress> clients;
 
@@ -33,8 +33,19 @@ public class CommandServer implements RequestHandler {
 		
 		// TODO log
 		System.out.println(socket.getInetAddress() + ": " + request);
+		
+		// TODO process request
 
 		return "Hello world!";
+	}
+
+	@Override
+	public String executeCommand(String cmd) {
+		if (cmd.equals("exit")) {
+			return null;
+		} else {
+			return "";
+		}
 	}
 	
 }
