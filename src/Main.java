@@ -12,14 +12,14 @@ public class Main {
 		
 		// TODO Handle exceptions
 						
-		CommandServer c2c = new CommandServer();
+		CommandServer c = new CommandServer();
 		
 		// Starting server thread
-		Server server = new Server(c2c);
+		Server server = new Server(c);
 		server.start();
 		
 		// Starting input thread
-		UserInput input = new UserInput(c2c);
+		UserInput input = new UserInput(c);
 		input.start();
 		
 	}
