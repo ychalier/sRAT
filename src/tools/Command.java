@@ -1,4 +1,4 @@
-package server;
+package tools;
 
 /**
  * Represents a command to be executed by the command and control server.
