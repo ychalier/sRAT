@@ -1,6 +1,7 @@
 import java.io.IOException;
 import java.net.UnknownHostException;
 
+import client.Client;
 import server.CommandServer;
 import server.Server;
 import server.UserInput;
@@ -21,6 +22,9 @@ public class Main {
 		// Starting input thread
 		UserInput input = new UserInput(c);
 		input.start();
+		
+		Client client = new Client();
+		client.start();
 		
 	}
 	
