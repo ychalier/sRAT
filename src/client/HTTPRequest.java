@@ -7,13 +7,27 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
+/**
+ * Provides static function to send HTTP post requests
+ * 
+ * @author Yohan Chalier
+ *
+ */
 public class HTTPRequest {
 	
+	/**
+	 * Small interface to pass a callback function for
+	 * asynchronous HTTP requests.
+	 * 
+	 * @author Yohan Chalier
+	 *
+	 */
 	public interface Callback {
 		public void run(String response);
 	}
 	
-	public static void sendAsync(String targetURL, String request, Callback callback) {
+	public static void sendAsync(String targetURL,
+			String request, Callback callback) {
 		
 		new Thread(new Runnable(){
 
@@ -33,10 +47,6 @@ public class HTTPRequest {
 			// Setting up connection
 			URL url = new URL(targetURL);
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-			/*conn.setRequestProperty(
-					"Content-Length",
-					Integer.toString(request.getBytes().length));
-			conn.setUseCaches(false);*/
 			conn.setDoOutput(true);
 			
 			// Sending request
@@ -53,7 +63,6 @@ public class HTTPRequest {
 			String line;
 			while ((line = reader.readLine()) != null) {
 				response.append(line);
-				response.append('\r');
 			}
 			reader.close();
 			return response.toString();

