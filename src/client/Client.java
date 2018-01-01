@@ -7,16 +7,20 @@ import java.util.Enumeration;
 
 public class Client extends Thread {
 	
-	private static final String SERVER_DOMAIN = "rat.chalier.fr";
+	private static final String SERVER_URL = "http://rat.chalier.fr";
 	
 	private String MAC;
+	private int id;
 	
 	@Override
 	public void run(){
 		
 		try {
 			MAC = getMAC();
-		} catch (SocketException e) {
+			id = Integer.parseInt(
+					HTTPRequest.send(SERVER_URL, "GETID " + MAC)
+					.replaceAll("\r", ""));
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}

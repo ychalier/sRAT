@@ -21,7 +21,7 @@ public class Main {
 		
 		// Starting input thread
 		UserInput input = new UserInput(c);
-		// input.start();
+		input.start();
 		
 		Client client = new Client();
 		client.start();

