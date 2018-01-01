@@ -6,6 +6,7 @@ import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -27,6 +28,8 @@ public class CommandServer implements RequestHandler, CommandHandler {
 	private Set<InetAddress> clients;
 	
 	public CommandServer() {
+		clients = new HashSet<InetAddress>();
+		
 		cmdsServer = new HashMap<String, Command>();
 		cmdsClient = new HashMap<String, Command>();
 		
@@ -70,8 +73,28 @@ public class CommandServer implements RequestHandler, CommandHandler {
 		// Reading request
 		BufferedReader reader = new BufferedReader(
     			new InputStreamReader(socket.getInputStream()));
-		String request = reader.readLine();
 		
+		StringBuilder builder = new StringBuilder();
+		
+		// Reading POST header
+		String line;
+		int contentLength = 0;
+		final String contentHeader = "Content-Length: ";
+		while (!(line = reader.readLine()).equals("")) {
+			if (line.startsWith(contentHeader)) {
+				contentLength = Integer.parseInt(
+						line.substring(contentHeader.length()));
+			}
+ 		}
+		
+		// Reading POST body
+		int c = 0;
+		for (int i = 0; i < contentLength; i++){
+			c = reader.read();
+			builder.append((char) c);
+		}
+		String request = builder.toString();
+				
 		// TODO log
 		System.out.println(socket.getInetAddress() + ": " + request);
 		
