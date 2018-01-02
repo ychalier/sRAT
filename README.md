@@ -1,15 +1,14 @@
 # sRAT
+
 A small remote access trojan, for research purposes.
 
 ## todo list
 
-### server side
-
-1. communication
-    1. server host
-    2. request syntax
+1. communication DONE
+    1. server host DONE
+    2. request syntax DONE
 2. features
-    1. command exec
+    1. command exec DONE
     2. data transfer
     3. *key logging*
 3. infection
@@ -19,7 +18,6 @@ A small remote access trojan, for research purposes.
     1. obfuscation
     2. encryption
 
-### client side
+## git usage
 
-1. communication
-2. interface
+Always use **branches** when implementing a *feature* or a *fix*, with syntax `yourName/feature/featureName` or `yourName/fix/bugToFix`, and be careful when merging.
