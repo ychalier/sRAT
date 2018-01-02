@@ -2,10 +2,13 @@ package client;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLConnection;
 
 /**
  * Provides static function to send HTTP post requests
@@ -14,6 +17,8 @@ import java.net.URL;
  *
  */
 public class HTTPRequest {
+	
+	private static final int BUFFER_SIZE = 4096;
 	
 	/**
 	 * Small interface to pass a callback function for
@@ -71,6 +76,28 @@ public class HTTPRequest {
 			e.printStackTrace();
 		}
 		return null;
+	}
+	
+	public static void download(String fileURL, String fileName)
+			throws IOException {
+		
+		URL url = new URL(fileURL);
+        URLConnection conn = url.openConnection();
+
+        // Opens input stream from the HTTP connection
+        InputStream inputStream = conn.getInputStream();
+         
+        // Opens an output stream to save into file
+        FileOutputStream outputStream = new FileOutputStream(fileName);
+ 
+        int bytesRead = -1;
+        byte[] buffer = new byte[BUFFER_SIZE];
+        while ((bytesRead = inputStream.read(buffer)) != -1) {
+            outputStream.write(buffer, 0, bytesRead);
+        }
+
+        outputStream.close();
+        inputStream.close();
 	}
 
 }

