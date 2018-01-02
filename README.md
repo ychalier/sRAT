@@ -24,16 +24,46 @@ Always use **branches** when implementing a *feature* or a *fix*, with syntax `y
 
 ## server usage
 
-An example showing how to execute an `ipconfig` on a remote machine, using server commands `list`, `select` and `exec`.
+You may insert commands after the `>` prompt. At any time, you can list commands typing `help`.
 
-	Server hosted on 192.168.1.19:80
+### select client
+
+To display all connected clients, use
+
+	>list
+
+It will output a two-column array, with ids and MACs of all connected clients. To selet a client, use `select ID`. For example,
+
 	>list
 	id     MAC address
-	4250   20-16-D8-D3-4F-D8
-	>select 4250
-	Selected client 4250
-	4250>exec ipconfig
+	1234   AA-BB-CC-DD-EE-FF
+	5678   00-11-22-33-44-55
+	>select 1234
+	Selected client 1234
+
+Now the prompt should begin as follows:
+
+	1234>
+
+### execute a command
+
+When a client is selected, make it execute a command with `exec YOUR_COMMAND`.
+
+	1234>exec ipconfig
 	Added command to stack
-	4250>EXEC_OUT 4250 
-	Configuration IP de Windows
-	...
+
+It might take up to 10 seconds to be sent to the client, and then, the output will show off. If client is using Windows, you can start any shell command with
+
+	1234>exec cmd.exe /C YOUR_COMMAND
+
+The output will be sent back to you.
+
+### download a file
+
+When a client is select, make it download a file with `dwnld FILE_URL LOCAL_FILENAME`.
+
+	1234>dwnld https://i.imgur.com/v4kJFU3.gif test.gif
+
+If you want to send a local file, you can use
+
+	1234>dwnld file:\\\C:\\Users\\FOO\\Desktop\\spam.exe out.exe
