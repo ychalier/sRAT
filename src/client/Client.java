@@ -24,6 +24,8 @@ public class Client extends Thread {
 	// Using a domain name to be able to change IP once compiled
 	// private static final String SERVER_URL = "http://rat.chalier.fr";
 	private static final String SERVER_URL = "http://192.168.1.19";
+	
+	// Client cooldown in milliseconds
 	private static final int REFRESH_COOLDOWN = 10000;
 	
 	private HashMap<String, Command> commands;

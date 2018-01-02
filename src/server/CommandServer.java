@@ -7,6 +7,7 @@ import java.net.Socket;
 import java.util.HashMap;
 
 import tools.Command;
+import tools.Log;
 import tools.ParsedCommand;
 
 /**
@@ -28,7 +29,12 @@ public class CommandServer implements RequestHandler, CommandHandler {
 	private ClientPool clients;
 	private int currentClient = -1;
 	
+	// Log requests
+	private Log log;
+	
 	public CommandServer() {
+		log = new Log();
+		
 		clients = new ClientPool();
 		
 		cmdsServer = new HashMap<String, Command>();
@@ -110,6 +116,16 @@ public class CommandServer implements RequestHandler, CommandHandler {
 			}
 		});
 		
+		// Show log
+		cmdsServer.put("log", new Command(){
+			@Override
+			public String exec(String[] args) {
+				if (args.length > 0)
+					return log.getText(Integer.parseInt(args[0]));
+				return log.getText();
+			}
+		});
+		
 		// Assign an ID to a client
 		cmdsClient.put("GETID", new Command(){
 			
@@ -187,8 +203,10 @@ public class CommandServer implements RequestHandler, CommandHandler {
 		String request = builder.toString();
 				
 		// TODO log
-		System.out.print("\n" + socket.getInetAddress()
-						+ ": " + request + "\n>");
+		if (request.startsWith("EXEC_OUT"))
+			System.out.println(request);
+		else
+			log.add("REQUEST   " + socket.getInetAddress() + "   " + request);
 		
 		// Executing command
 		ParsedCommand pCmd = new ParsedCommand(request);

@@ -25,7 +25,6 @@ public class ClientPool extends HashMap<Integer, ConnectedClient> {
 		ConnectedClient client = new ConnectedClient();
 		client.setMACAddress(MAC);
 		put(id, client);
-		System.out.print("\n New client with ID " + id + " detected.\n>");
 		return id;
 	}
 	
