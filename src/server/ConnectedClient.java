@@ -3,13 +3,19 @@ package server;
 import java.util.LinkedList;
 import java.util.Queue;
 
+/**
+ * Represents a connected client.
+ * 
+ * @author Yohan Chalier
+ *
+ */
 public class ConnectedClient {
 	
 	private String MACAddress;
 	private String InetAddress;
 	private int id;
 	
-	private Queue<String> cmdQueue;
+	private Queue<String> cmdQueue; // File structure FIFO
 	
 	public ConnectedClient() {
 		cmdQueue = new LinkedList<String>();

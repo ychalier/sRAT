@@ -26,6 +26,7 @@ public class CommandServer implements RequestHandler, CommandHandler {
 	
 	// The set of connected clients IPs
 	private ClientPool clients;
+	private int currentClient = -1;
 	
 	public CommandServer() {
 		clients = new ClientPool();
@@ -57,21 +58,55 @@ public class CommandServer implements RequestHandler, CommandHandler {
 			}
 		});
 		
+		// List all connected clients
+		cmdsServer.put("list", new Command(){
+			@Override
+			public String exec(String[] args) {
+				
+				StringBuilder sb = new StringBuilder();
+				sb.append("id     MAC address\n");
+				
+				for (int id: clients.keySet()) {
+					sb.append(id + "   "
+							+ clients.get(id).getMACAddress() + "\n");
+				}
+				
+				// Removing last '\n'
+				sb.setCharAt(sb.length() - 1, (char) 0);
+				
+				return sb.toString();
+			}
+		});
+		
+		// Select a client to 'exec' commands
+		cmdsServer.put("select", new Command(){
+			@Override
+			public String exec(String[] args) {
+				currentClient = Integer.parseInt(args[0]);
+				return "Selected client " + args[0];
+			}
+		});
+		
+		// Execute a command
 		cmdsServer.put("exec", new Command(){
 			@Override
 			public String exec(String[] args) {
-				ConnectedClient client;
-				if ((client = identify(args[0])) != null) {
-					StringBuilder cmd = new StringBuilder();
-					cmd.append("EXEC ");
-					for (int i = 1; i < args.length; i++){
-						cmd.append(args[i]
-								+ (i == args.length - 1 ? "" : " "));
+				if (currentClient >= 0) {
+					ConnectedClient client;
+					if ((client = identify(currentClient)) != null) {
+						StringBuilder cmd = new StringBuilder();
+						cmd.append("EXEC ");
+						for (int i = 0; i < args.length; i++){
+							cmd.append(args[i]
+									+ (i == args.length - 1 ? "" : " "));
+						}
+						client.stackCmd(cmd.toString());
+						return "Added command to stack";
 					}
-					client.stackCmd(cmd.toString());
-					return "Added command to stack";
+					return "No corresponding client (" + args[0] + ") found.";
+				} else {
+					return "Select a client first.";
 				}
-				return "No corresponding client (" + args[0] + ") found.";
 			}
 		});
 		
@@ -109,8 +144,12 @@ public class CommandServer implements RequestHandler, CommandHandler {
 	}
 	
 	private ConnectedClient identify(String idStr) {
-		if (clients.containsKey(Integer.parseInt(idStr))) {
-			return clients.get(Integer.parseInt(idStr));
+		return identify(Integer.parseInt(idStr));
+	}
+	
+	private ConnectedClient identify(int id) {
+		if (clients.containsKey(id)) {
+			return clients.get(id);
 		}
 		return null;
 	}
@@ -164,6 +203,12 @@ public class CommandServer implements RequestHandler, CommandHandler {
 		if (cmdsServer.containsKey(pCmd.cmd))
 			return cmdsServer.get(pCmd.cmd).exec(pCmd.args);
 		return ERROR_COMMAND_NOT_FOUND;
+	}
+
+	@Override
+	public String getPrefix() {
+		if (currentClient >= 0) return Integer.toString(currentClient);
+		return "";
 	}
 	
 }

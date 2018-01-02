@@ -3,6 +3,12 @@ package server;
 import java.util.HashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
+/**
+ * Stores a set of clients, represented by their ids.
+ * 
+ * @author Yohan Chalier
+ *
+ */
 @SuppressWarnings("serial")
 public class ClientPool extends HashMap<Integer, ConnectedClient> {
 	

@@ -33,7 +33,7 @@ public class UserInput extends Thread {
 			if (str == null) {
 				break;
 			} else {
-				System.out.print(str + "\n>");
+				System.out.print(str + "\n" + cmdHandler.getPrefix() + ">");
 			}
 		}
 		sc.close();
