@@ -38,7 +38,12 @@ public class CommandServer implements RequestHandler, CommandHandler {
 	public CommandServer() {
 		log = new Log();
 		
-		clients = new ClientPool();
+		try {
+			clients = new ClientPool();
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 		
 		cmdsServer = new HashMap<String, Command>();
 		cmdsClient = new HashMap<String, Command>();
@@ -129,6 +134,23 @@ public class CommandServer implements RequestHandler, CommandHandler {
 				if (args.length > 0)
 					return log.getText(Integer.parseInt(args[0]));
 				return log.getText();
+			}
+			
+		});
+		
+		// Save clients
+		cmdsServer.put("save_clients", new Command(){
+
+			@Override
+			public String exec(String[] args) {
+				
+				try {
+					return clients.save("clients");
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				return null;
 			}
 			
 		});

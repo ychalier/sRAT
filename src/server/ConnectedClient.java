@@ -15,8 +15,6 @@ public class ConnectedClient {
 	private String MACAddress;
 	private String InetAddress;
 	private String os;
-	
-	
 	private Queue<String> cmdQueue; // File structure FIFO
 	
 	public ConnectedClient(int id) {
