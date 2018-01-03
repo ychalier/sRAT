@@ -27,7 +27,7 @@ public class ClientCommand implements Command {
 				client.stackCmd(cmd.toString());
 				return "Added command to stack";
 			}
-			return "No corresponding client (" + args[0] + ") found.";
+			return "No corresponding client found.";
 		} else {
 			return "Select a client first.";
 		}

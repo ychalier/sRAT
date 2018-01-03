@@ -22,7 +22,7 @@ public class ClientPool extends HashMap<Integer, ConnectedClient> {
 	
 	public int addClient(String MAC){
 		int id = generateId();
-		ConnectedClient client = new ConnectedClient();
+		ConnectedClient client = new ConnectedClient(id);
 		client.setMACAddress(MAC);
 		put(id, client);
 		return id;

