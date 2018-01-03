@@ -40,6 +40,10 @@ public class CommandServer implements RequestHandler, CommandHandler {
 		cmdsServer = new HashMap<String, Command>();
 		cmdsClient = new HashMap<String, Command>();
 		
+		
+		
+		// ***** GENERAL SEVER COMMANDS ***** //
+		
 		// Display available commands
 		cmdsServer.put("help", new Command(){
 			
@@ -101,56 +105,6 @@ public class CommandServer implements RequestHandler, CommandHandler {
 			
 		});
 		
-		// Execute a command
-		cmdsServer.put("exec", new Command(){
-			
-			@Override
-			public String exec(String[] args) {
-				if (currentClient >= 0) {
-					ConnectedClient client;
-					if ((client = identify(currentClient)) != null) {
-						StringBuilder cmd = new StringBuilder();
-						cmd.append("EXEC ");
-						for (int i = 0; i < args.length; i++){
-							cmd.append(args[i]
-									+ (i == args.length - 1 ? "" : " "));
-						}
-						client.stackCmd(cmd.toString());
-						return "Added command to stack";
-					}
-					return "No corresponding client (" + args[0] + ") found.";
-				} else {
-					return "Select a client first.";
-				}
-			}
-			
-		});
-		
-		// Download a file
-		cmdsServer.put("dwnld", new Command(){
-			
-			@Override
-			public String exec(String[] args) {
-				if (currentClient >= 0) {
-					ConnectedClient client;
-					if ((client = identify(currentClient)) != null) {
-						StringBuilder cmd = new StringBuilder();
-						cmd.append("DWNLD ");
-						for (int i = 0; i < args.length; i++){
-							cmd.append(args[i]
-									+ (i == args.length - 1 ? "" : " "));
-						}
-						client.stackCmd(cmd.toString());
-						return "Added command to stack";
-					}
-					return "No corresponding client (" + args[0] + ") found.";
-				} else {
-					return "Select a client first.";
-				}
-			}
-			
-		});
-		
 		// Show log
 		cmdsServer.put("log", new Command(){
 			
@@ -163,6 +117,20 @@ public class CommandServer implements RequestHandler, CommandHandler {
 			
 		});
 		
+		
+		
+		// ***** CONNECTED CLIENT COMMANDS ***** //
+		
+		// Execute a command
+		cmdsServer.put("exec", new ClientCommand(this, "EXEC"));
+		
+		// Download a file
+		cmdsServer.put("dwnld", new ClientCommand(this, "DWNLD"));
+		
+		
+		
+		// ***** CLIENT REQUESTS COMMANDS ***** //
+		
 		// Assign an ID to a client
 		cmdsClient.put("GETID", new Command(){
 			
@@ -171,9 +139,9 @@ public class CommandServer implements RequestHandler, CommandHandler {
 
 				ConnectedClient client = clients.findByMac(args[0]);
 				
-				if (client != null) { // Already known client
+				if (client != null) {		// Already known client
 					return Integer.toString(client.getId());
-				} else { // New client
+				} else { 					// New client
 					return Integer.toString(clients.addClient(args[0]));
 				}
 				
@@ -187,7 +155,8 @@ public class CommandServer implements RequestHandler, CommandHandler {
 			@Override
 			public String exec(String[] args) {
 				ConnectedClient client;
-				if ((client = identify(args[0])) != null && client.hasCmd()) {
+				if ((client = clients.identify(args[0])) != null
+						&& client.hasCmd()) {
 					return client.popCmd();
 				}
 				return "PONG";
@@ -195,20 +164,8 @@ public class CommandServer implements RequestHandler, CommandHandler {
 			
 		});
 		
-		// ADD COMMANDS HERE
-		
 	}
 	
-	private ConnectedClient identify(String idStr) {
-		return identify(Integer.parseInt(idStr));
-	}
-	
-	private ConnectedClient identify(int id) {
-		if (clients.containsKey(id)) {
-			return clients.get(id);
-		}
-		return null;
-	}
 
 	@Override
 	public String getResponse(Socket socket)
@@ -267,6 +224,14 @@ public class CommandServer implements RequestHandler, CommandHandler {
 	public String getPrefix() {
 		if (currentClient >= 0) return Integer.toString(currentClient);
 		return "";
+	}
+	
+	public int getCurrentClient() {
+		return currentClient;
+	}
+	
+	public ClientPool getClients() {
+		return clients;
 	}
 	
 }

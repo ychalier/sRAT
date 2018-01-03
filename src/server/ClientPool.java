@@ -35,5 +35,13 @@ public class ClientPool extends HashMap<Integer, ConnectedClient> {
 		}
 		return id;
 	}
+	
+	public ConnectedClient identify(String idStr) {
+		return identify(Integer.parseInt(idStr));
+	}
+	
+	public ConnectedClient identify(int id) {
+		return get(id);
+	} 
 
 }
