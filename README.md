@@ -4,12 +4,12 @@ A small remote access trojan, for research purposes.
 
 ## todo list
 
-1. communication DONE
-    1. server host DONE
-    2. request syntax DONE
+1. DONE: communication
+    1. DONE: server host
+    2. DONE: request syntax
 2. features
-    1. command exec DONE
-    2. data transfer
+    1. DONE: command exec
+    2. DONE: data transfer
     3. *key logging*
 3. infection
     1. startup
