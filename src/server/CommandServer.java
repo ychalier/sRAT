@@ -99,8 +99,21 @@ public class CommandServer implements RequestHandler, CommandHandler {
 			
 			@Override
 			public String exec(String[] args) {
+				if (args.length != 1)
+					return "Usage: select ID";
 				currentClient = Integer.parseInt(args[0]);
 				return "Selected client " + args[0];
+			}
+			
+		});
+		
+		// Unselect a client
+		cmdsServer.put("unselect", new Command(){
+
+			@Override
+			public String exec(String[] args) {
+				currentClient = -1;
+				return "Client unselected.";
 			}
 			
 		});
@@ -140,11 +153,10 @@ public class CommandServer implements RequestHandler, CommandHandler {
 				ConnectedClient client = clients.findByMac(args[0]);
 				
 				if (client != null) {		// Already known client
-					return Integer.toString(client.getId());
+					return Integer.toString(client.getId()); 
 				} else { 					// New client
 					return Integer.toString(clients.addClient(args[0]));
 				}
-				
 			}
 			
 		});
@@ -198,17 +210,20 @@ public class CommandServer implements RequestHandler, CommandHandler {
 			builder.append((char) c);
 		}
 		String request = builder.toString();
-				
-		// TODO log
+
 		if (request.startsWith("EXEC_OUT"))
 			System.out.println(request);
 		else
-			log.add("REQUEST   " + socket.getInetAddress() + "   " + request);
+			log.add(0, socket.getInetAddress() + "\t" + request);
 		
 		// Executing command
 		ParsedCommand pCmd = new ParsedCommand(request);
-		if (cmdsClient.containsKey(pCmd.cmd))
-			return cmdsClient.get(pCmd.cmd).exec(pCmd.args);
+		if (cmdsClient.containsKey(pCmd.cmd)) {
+			String response = cmdsClient.get(pCmd.cmd).exec(pCmd.args);
+			log.add(1, socket.getInetAddress() + "\t" + response);
+			return response;
+		}
+			
 		return ERROR_COMMAND_NOT_FOUND;
 	}
 
