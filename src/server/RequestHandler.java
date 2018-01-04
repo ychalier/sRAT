@@ -12,6 +12,6 @@ import java.net.Socket;
  */
 public interface RequestHandler {
 	
-	String getResponse(Socket socket) throws IOException;
+	void handle(Socket socket) throws IOException;
 
 }

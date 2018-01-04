@@ -11,6 +11,6 @@ package tools;
  */
 public interface Command {
 
-	public String exec(String[] args);
+	public String exec(ParsedCommand pCmd);
 	
 }

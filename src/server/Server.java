@@ -53,17 +53,18 @@ public class Server extends Thread {
 	public void run() {
 
 		while (true) {
+			
 			try {
-				// Reading input
+				
+				// Accepting socket
 		    	Socket socket = server.accept();
 		    	
-				// Preparing response
-				String response = requestHandler.getResponse(socket);
-				String httpResponse = "HTTP/1.1 200 OK\r\n\r\n" + response;
-				
-				// Answering request
-				socket.getOutputStream().write(httpResponse.getBytes("UTF-8"));
-				socket.close();
+		    	// Passing request to command server
+		    	requestHandler.handle(socket);
+		    	
+		    	// Closing connection
+		    	socket.close();
+		    	
 			} catch (IOException e) {
 				//TODO handle exception nicely
 				System.out.println(e);

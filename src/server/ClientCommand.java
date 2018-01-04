@@ -1,6 +1,7 @@
 package server;
 
 import tools.Command;
+import tools.ParsedCommand;
 
 public class ClientCommand implements Command {
 	
@@ -13,17 +14,14 @@ public class ClientCommand implements Command {
 	}
 
 	@Override
-	public String exec(String[] args) {
+	public String exec(ParsedCommand pCmd) {
 		if (c2.getCurrentClient() >= 0) {
 			ConnectedClient client;
 			if ((client = c2.getClients().identify(c2.getCurrentClient()))
 					!= null) {
 				StringBuilder cmd = new StringBuilder();
 				cmd.append(prefix + " ");
-				for (int i = 0; i < args.length; i++){
-					cmd.append(args[i]
-							+ (i == args.length - 1 ? "" : " "));
-				}
+				cmd.append(pCmd.argLine());
 				client.stackCmd(cmd.toString());
 				return "Added command to stack";
 			}

