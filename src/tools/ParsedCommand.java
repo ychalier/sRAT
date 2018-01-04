@@ -11,7 +11,7 @@ package tools;
 public class ParsedCommand {
 	public final String cmd;
 	public final String[] args;
-	public final String payload;
+	public final byte[] payload;
 	
 	public ParsedCommand(String request){
 		String[] split = request.split(" ");
@@ -19,10 +19,10 @@ public class ParsedCommand {
 		args = new String[split.length - 1];
 		for (int i = 1; i < split.length; i++)
 			args[i-1] = split[i];
-		this.payload = "";
+		payload = new byte[] {};
 	}
 	
-	public ParsedCommand(String request, String payload) {
+	public ParsedCommand(String request, byte[] payload) {
 		String[] split = request.split(" ");
 		this.cmd = split[0];
 		this.args = new String[split.length - 1];

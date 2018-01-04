@@ -58,7 +58,7 @@ public class Server extends Thread {
 				
 				// Accepting socket
 		    	Socket socket = server.accept();
-		    	
+
 		    	// Passing request to command server
 		    	requestHandler.handle(socket);
 		    	

