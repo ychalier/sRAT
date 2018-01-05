@@ -5,6 +5,7 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.ServerSocket;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.Enumeration;
 
@@ -21,6 +22,7 @@ public class Server extends Thread {
 	
 	private static final int DEFAULT_BACKLOG = 0;
 	private static final int DEFAULT_PORT = 80;
+	private static final int TIMEOUT = 1000; // ms
 	
 	private ServerSocket server;
 	private RequestHandler requestHandler;
@@ -52,8 +54,15 @@ public class Server extends Thread {
 	 * @throws IOException Reading or writing in the connection stream
 	 */
 	public void run() {
+		
+		try {
+			server.setSoTimeout(TIMEOUT);
+		} catch (SocketException e2) {
+			// TODO Auto-generated catch block
+			e2.printStackTrace();
+		}
 
-		while (true) {
+		while (!requestHandler.isClosed()) {
 			
 			Connection conn;
 			try {
@@ -65,8 +74,6 @@ public class Server extends Thread {
 					public void run() {
 						
 						try {
-							
-							
 							
 					    	// Passing request to command server
 					    	requestHandler.handle(conn);
@@ -83,9 +90,11 @@ public class Server extends Thread {
 		    		
 		    	}).start();
 				
-			} catch (IOException e1) {
+			} catch (SocketTimeoutException e) {
+				// pass
+			} catch (IOException e) {
 				// TODO Auto-generated catch block
-				e1.printStackTrace();
+				e.printStackTrace();
 			}
 
 	    }

@@ -47,30 +47,33 @@ public class CommandServer implements RequestHandler, CommandHandler {
 	private boolean clientConnected = false;
 	
 	/**
-	 * To log incoming out outcoming requests.
+	 * To log incoming out outgoing requests.
 	 */
 	private Log log;
 	
+	private boolean closed = false;
+	
 	public CommandServer() {
+		
 		// Starting log
 		log = new Log();
 		
+		// Creating clients sets
 		try {
 			clients = new ClientPool();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		
+		// Adding commands
 		cmdsServer = new HashMap<String, CommandInterface>();
 		cmdsClient = new HashMap<String, CommandInterface>();
-		
-		// ***** GENERAL SEVER COMMANDS ***** //
-		
-		// Close user input
+				
 		cmdsServer.put("exit", new CommandInterface(){
 			
 			@Override
 			public String exec(ParsedCommand pCmd) {
+				closed = true;
 				return null;
 			}
 			
@@ -136,12 +139,17 @@ public class CommandServer implements RequestHandler, CommandHandler {
 		return cmdsClient;
 	}
 	
+	public boolean isClosed() {
+		return closed;
+	}
+
 	@Override
 	public void handle(Connection conn)
 			throws IOException {
 				
 		String response = null;
-		while (response == null || !response.startsWith(ServerCommand.DONE)) {
+		while (response == null
+				|| !response.startsWith(ServerCommand.DONE)) {
 			
 			ParsedCommand pCmd = conn.readRequest();
 			

@@ -14,5 +14,6 @@ import tools.Connection;
 public interface RequestHandler {
 	
 	void handle(Connection conn) throws IOException;
+	boolean isClosed();
 
 }
