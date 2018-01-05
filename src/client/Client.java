@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
 
-import tools.Command;
+import commands.CommandInterface;
 import tools.Connection;
 import tools.ParsedCommand;
 
@@ -35,7 +35,7 @@ public class Client extends Thread {
 	// Client cooldown in milliseconds
 	private static final int REFRESH_COOLDOWN = 10000;
 	
-	private HashMap<String, Command> commands;
+	private HashMap<String, CommandInterface> commands;
 	
 	// Current connection
 	private Connection curConn;
@@ -44,9 +44,9 @@ public class Client extends Thread {
 	private int id;
 	
 	public Client() {
-		commands = new HashMap<String, Command>();
+		commands = new HashMap<String, CommandInterface>();
 		
-		commands.put("DONE", new Command(){
+		commands.put("DONE", new CommandInterface(){
 
 			@Override
 			public String exec(ParsedCommand pCmd) {
@@ -57,7 +57,7 @@ public class Client extends Thread {
 			
 		});
 		
-		commands.put("EXEC", new Command(){
+		commands.put("EXEC", new CommandInterface(){
 
 			@Override
 			public String exec(ParsedCommand pCmd) {
@@ -84,7 +84,7 @@ public class Client extends Thread {
 		});
 		
 		// Download a file
-		commands.put("DWNLD", new Command(){
+		commands.put("DWNLD", new CommandInterface(){
 
 			@Override
 			public String exec(ParsedCommand pCmd) {
@@ -104,7 +104,7 @@ public class Client extends Thread {
 		});
 		
 		// Upload a file
-		commands.put("UPLD", new Command(){
+		commands.put("UPLD", new CommandInterface(){
 
 			@Override
 			public String exec(ParsedCommand pCmd) {

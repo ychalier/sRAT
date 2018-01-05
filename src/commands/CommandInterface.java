@@ -1,4 +1,6 @@
-package tools;
+package commands;
+
+import tools.ParsedCommand;
 
 /**
  * Represents a command to be executed by the command and control server.
@@ -9,7 +11,7 @@ package tools;
  * @author Yohan Chalier
  *
  */
-public interface Command {
+public interface CommandInterface {
 
 	public String exec(ParsedCommand pCmd);
 	

@@ -1,14 +1,15 @@
-package server;
+package commands;
 
-import tools.Command;
+import server.CommandServer;
+import server.ConnectedClient;
 import tools.ParsedCommand;
 
-public class ClientCommand implements Command {
+public class ToClientCommand implements CommandInterface {
 	
 	private CommandServer c2;
 	private String prefix;
 	
-	public ClientCommand(CommandServer c2, String prefix) {
+	public ToClientCommand(CommandServer c2, String prefix) {
 		this.c2 = c2;
 		this.prefix = prefix;
 	}
