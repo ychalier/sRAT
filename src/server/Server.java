@@ -4,10 +4,11 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.ServerSocket;
-import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Enumeration;
+
+import tools.Connection;
 
 /**
  * Implements basic server features,
@@ -54,21 +55,39 @@ public class Server extends Thread {
 
 		while (true) {
 			
+			Connection conn;
 			try {
+				conn = new Connection(server.accept());
 				
-				// Accepting socket
-		    	Socket socket = server.accept();
+				new Thread(new Runnable(){
 
-		    	// Passing request to command server
-		    	requestHandler.handle(socket);
-		    	
-		    	// Closing connection
-		    	socket.close();
-		    	
-			} catch (IOException e) {
-				//TODO handle exception nicely
-				System.out.println(e);
+					@Override
+					public void run() {
+						
+						try {
+							
+							
+							
+					    	// Passing request to command server
+					    	requestHandler.handle(conn);
+					    	
+					    	// Closing connection
+					    	conn.close();
+					    	
+						} catch (IOException e) {
+							//TODO handle exception nicely
+							System.out.println(e);
+						}
+						
+					}
+		    		
+		    	}).start();
+				
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
 			}
+
 	    }
 		
 	}

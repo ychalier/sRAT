@@ -1,7 +1,8 @@
 package server;
 
 import java.io.IOException;
-import java.net.Socket;
+
+import tools.Connection;
 
 /**
  * Used by the server to handle
@@ -12,6 +13,6 @@ import java.net.Socket;
  */
 public interface RequestHandler {
 	
-	void handle(Socket socket) throws IOException;
+	void handle(Connection conn) throws IOException;
 
 }

