@@ -33,6 +33,7 @@ public class GetIdCmd extends ServerCommand {
 		// Storing OS
 		c2.getClients().get(id).setOs(pCmd.argLine(2));
 		
+		// Returns the id for the client
 		return Integer.toString(id);
 	}
 

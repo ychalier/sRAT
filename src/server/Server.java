@@ -20,9 +20,16 @@ import tools.Connection;
  */
 public class Server extends Thread {
 	
-	private static final int DEFAULT_BACKLOG = 0;
+	/**
+	 * Default server port.
+	 */
 	private static final int DEFAULT_PORT = 80;
-	private static final int TIMEOUT = 1000; // ms
+	
+	/**
+	 * Server timeout when waiting for a request.
+	 * In milliseconds.
+	 */
+	private static final int TIMEOUT = 1000;
 	
 	private ServerSocket server;
 	private RequestHandler requestHandler;
@@ -41,7 +48,7 @@ public class Server extends Thread {
 				  int port, InetAddress bindAddr)
 			throws IOException {
 		this.requestHandler = requestHandler;
-		server = new ServerSocket(port, DEFAULT_BACKLOG, bindAddr);
+		server = new ServerSocket(port, 0, bindAddr);
 		System.out.println("Server hosted on "
 						   + bindAddr.getHostAddress()
 						   + ":" + port);
@@ -57,24 +64,27 @@ public class Server extends Thread {
 		
 		try {
 			server.setSoTimeout(TIMEOUT);
-		} catch (SocketException e2) {
-			// TODO Auto-generated catch block
-			e2.printStackTrace();
+		} catch (SocketException e) {
+			e.printStackTrace();
 		}
 
+		// Check if the request handler needs to close
 		while (!requestHandler.isClosed()) {
 			
 			Connection conn;
 			try {
+				
+				// Accepting a new incoming request
 				conn = new Connection(server.accept());
 				
+				// Handling it in a new thread, to be able to communicate
+				// with other clients.
 				new Thread(new Runnable(){
 
 					@Override
 					public void run() {
 						
 						try {
-							
 					    	// Passing request to command server
 					    	requestHandler.handle(conn);
 					    	
@@ -82,7 +92,6 @@ public class Server extends Thread {
 					    	conn.close();
 					    	
 						} catch (IOException e) {
-							//TODO handle exception nicely
 							System.out.println(e);
 						}
 						
@@ -90,10 +99,7 @@ public class Server extends Thread {
 		    		
 		    	}).start();
 				
-			} catch (SocketTimeoutException e) {
-				// pass
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
+			} catch (SocketTimeoutException e) {} catch (IOException e) {
 				e.printStackTrace();
 			}
 

@@ -13,6 +13,12 @@ import tools.ParsedCommand;
  */
 public interface CommandInterface {
 
+	/**
+	 * Execute the represented command.
+	 * 
+	 * @param pCmd Contains all arguments for the command to be executed.
+	 * @return The response String.
+	 */
 	public String exec(ParsedCommand pCmd);
 	
 }

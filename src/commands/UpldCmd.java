@@ -7,6 +7,14 @@ import java.io.OutputStream;
 import server.CommandServer;
 import tools.ParsedCommand;
 
+/**
+ * Upload a file from client to server.
+ * 
+ * Here we save the payload containing the uploaded file.
+ * 
+ * @author Yohan Chalier
+ *
+ */
 public class UpldCmd extends ServerCommand {
 
 	public UpldCmd(CommandServer c2) {
@@ -23,7 +31,6 @@ public class UpldCmd extends ServerCommand {
 			}
 			out.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		if (c2.getCurrentClient() >= 0)

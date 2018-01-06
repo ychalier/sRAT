@@ -4,7 +4,10 @@ import server.CommandServer;
 import tools.ParsedCommand;
 
 /**
- * Show log
+ * Show log.
+ * 
+ * If an integer argument is passed, then shows
+ * this selected amount of lines.
  * 
  * @author Yohan Chalier
  *

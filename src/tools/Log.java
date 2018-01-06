@@ -57,7 +57,9 @@ public class Log extends ArrayList<String> {
 			tmp.append(get(i) + '\n');
 		}
 		
-		tmp.setCharAt(tmp.length() - 1, (char) 0);
+		// If log is empty, no need to change anything
+		if (tmp.length() > 0)
+			tmp.setCharAt(tmp.length() - 1, (char) 0);
 		
 		return tmp.toString();
 	}
