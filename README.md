@@ -26,6 +26,27 @@ Always use **branches** when implementing a *feature* or a *fix*, with syntax `f
 
 You may insert commands after the `>` prompt. At any time, you can list commands typing `help`.
 
+**global server commands**
+
+command        | argument | description
+-------------- | -------- | -----------
+`help`         |          | display all commands
+`exit`         |          | close server
+`list`         |          | list all connected clients
+`select`       | id       | select a client, given its id. opens a connection.
+`unselect`     |          | unselect the client. close the connection.
+`log`          | [nRows]  | prints out the log ; if an argument is passed, prints the selected amount of lines.
+`save_clients` |          | save clients info to an external file, named `clients`.
+
+**seleted client commands**
+
+command | argument              | description
+------- | --------------------- | -----------
+`info`  |                       | display all information about the selected client 
+`exec`  | command               | make the client execute a given shell command
+`upld`  | clientFile serverFile | upload a file from the client to the server
+`dwnld` | fileUrl localFile     | make the client download a file given by its url
+
 ### select client
 
 #### list all connected clients
