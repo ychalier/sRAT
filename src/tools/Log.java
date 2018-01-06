@@ -20,7 +20,7 @@ public class Log extends ArrayList<String> {
 	 * Timestamp format
 	 */
 	private static final SimpleDateFormat SDF =
-			new SimpleDateFormat("yyyy/MM/dd.HH:mm:ss");
+			new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 	
 	/**
 	 * Prefix for requests or replies
