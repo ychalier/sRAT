@@ -51,8 +51,15 @@ public class CommandServer implements RequestHandler, CommandHandler {
 	 */
 	private Log log;
 	
+	/**
+	 * Value regularly checked by the server (every second) to see
+	 * if it should close itself.
+	 */
 	private boolean closed = false;
 	
+	/**
+	 * @see ServerCommand
+	 */
 	public CommandServer() {
 		
 		// Starting log
@@ -86,7 +93,6 @@ public class CommandServer implements RequestHandler, CommandHandler {
 		cmdsServer.put("log", new LogCmd(this));
 		cmdsServer.put("save_clients", new SaveClientsCmd(this));
 		cmdsServer.put("info", new InfoCmd(this));
-		
 		cmdsServer.put("exec", new ToClientCommand(this, "EXEC"));
 		cmdsServer.put("dwnld", new ToClientCommand(this, "DWNLD"));
 		cmdsServer.put("upld", new ToClientCommand(this, "UPLD"));
@@ -139,18 +145,35 @@ public class CommandServer implements RequestHandler, CommandHandler {
 		return cmdsClient;
 	}
 	
+	/**
+	 * Implements the RequestHandler interface.
+	 */
 	public boolean isClosed() {
 		return closed;
 	}
-
+	
+	/**
+	 * Implements the RequestHandler interface.
+	 * 
+	 * Handles a server requests and writes an answer in the connection
+	 * output stream.
+	 * 
+	 * Only returns when the dialogue is over, which corresponds to the
+	 * server answering with a 'DONE'. Until then, it keeps the connection
+	 * alive with the client to keep it ready to talk.
+	 * 
+	 * @param conn The connection given by the server
+	 * @throws IOException
+	 */
 	@Override
 	public void handle(Connection conn)
 			throws IOException {
-				
+		
 		String response = null;
 		while (response == null
 				|| !response.startsWith(ServerCommand.DONE)) {
 			
+			// Reading the incoming request (possibly with a payload)
 			ParsedCommand pCmd = conn.readRequest();
 			
 			// Logging request
@@ -159,23 +182,39 @@ public class CommandServer implements RequestHandler, CommandHandler {
 			
 			// Executing command
 			if (cmdsClient.containsKey(pCmd.cmd)) {
+				
+				// Getting response from command
 				response = cmdsClient.get(pCmd.cmd).exec(pCmd);
+				
+				// Logging response
 				log.add(1, conn.getInetAddress() + "\t" + response);
+				
+				// Writing it to socket output for the client to read
 				conn.write(response);
 			}
 			
+			// If the answer is N_DONE, then the current task is over,
+			// but the user wanted to keep the connection alive.
+			// Therefore, we wait for its input from the user input thread.
 			if (response != null
 					&& response.startsWith(ServerCommand.N_DONE)) {
+				
+				// Storing client as executing the command might
+				// change the currentClient value.
 				ConnectedClient client = clients.get(currentClient);
+				
+				// Waiting for a command to be added
 				while (!client.hasCmd())
 					try {
 						Thread.sleep(50);
 					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
+				// Executing command
 				response = client.popCmd();
+				// Logging it
 				log.add(1, conn.getInetAddress() + "\t" + response);
+				// Writing it to output
 				conn.write(response);
 			}
 
@@ -184,7 +223,15 @@ public class CommandServer implements RequestHandler, CommandHandler {
 		clientConnected = false;
 		
 	}
-
+	
+	/**
+	 * Implements the CommandHandler interface.
+	 * 
+	 * Executes a command from the user input.
+	 * 
+	 * @param cmd The command to be executed
+	 * @return The response string, to be printed to the user
+	 */
 	@Override
 	public String executeCommand(String cmd) {
 		ParsedCommand pCmd = new ParsedCommand(cmd);
@@ -193,6 +240,11 @@ public class CommandServer implements RequestHandler, CommandHandler {
 		return ERROR_COMMAND_NOT_FOUND;
 	}
 
+	/**
+	 * Implements the CommandHandler interface.
+	 * 
+	 * @return The string to be put before the '>' for user input.
+	 */
 	@Override
 	public String getPrefix() {
 		StringBuilder prefix = new StringBuilder();

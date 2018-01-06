@@ -9,8 +9,19 @@ package tools;
  *
  */
 public class ParsedCommand {
+	/**
+	 * The command itself (first word)
+	 */
 	public final String cmd;
+	
+	/**
+	 * The command (cmd) arguments
+	 */
 	public final String[] args;
+	
+	/**
+	 * The attached payload
+	 */
 	public final byte[] payload;
 	
 	public ParsedCommand(String request){
@@ -31,6 +42,13 @@ public class ParsedCommand {
 		this.payload = payload;
 	}
 	
+	/**
+	 * Returns a string with all arguments inline,
+	 * starting from a given index to the end.
+	 * 
+	 * @param start The index to start
+	 * @return The concatenation of arguments
+	 */
 	public String argLine(int start) {
 		StringBuilder sb = new StringBuilder();
 		for (int i = start; i < args.length; i++) {
