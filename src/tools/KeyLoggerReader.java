@@ -145,7 +145,7 @@ public class KeyLoggerReader {
 		}
 	}
 	
-	public void print() {
+	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		boolean capsLock = false;
 		for (KeyPress key: log) {
@@ -156,7 +156,11 @@ public class KeyLoggerReader {
 			else
 				sb.append(key.toChar(false));
 		}
-		System.out.println(sb.toString());		
+		return sb.toString();
+	}
+	
+	public void print() {
+		System.out.println(toString());
 	}
 
 }

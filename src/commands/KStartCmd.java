@@ -11,8 +11,8 @@ public class KStartCmd extends ServerCommand{
 	
 	@Override
 	public String exec(ParsedCommand pCmd) {		
-		System.out.println("Starting keylogger for client " + pCmd.args[0]);
-		
+		System.out.print("\nStarting keylogger for client " + pCmd.args[0]
+				+ "\n" + c2.getPrefix() + ">");
 		if (c2.getCurrentClient() >= 0)
 			return N_DONE;
 		return DONE;
