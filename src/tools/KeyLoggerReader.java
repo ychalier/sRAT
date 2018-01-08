@@ -6,7 +6,16 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+/**
+ * Interprets a keylogger log file and provides
+ * tools to print it.
+ * 
+ * @author Yohan Chalier
+ *
+ */
 public class KeyLoggerReader {
+	
+	// Key codes
 	
 	private static final int BACKSPACE = 8;
 	private static final int ENTER = 13;
@@ -85,7 +94,14 @@ public class KeyLoggerReader {
 		AZERTY_ALT.put(223, '!');
 	}
 	
+	/**
+	 * Holds info about a single keypress.
+	 * 
+	 * @author Yohan Chalier
+	 *
+	 */
 	private class KeyPress {
+		@SuppressWarnings("unused")
 		String timestamp;
 		int keyCode;
 		boolean isShiftPressed;
@@ -107,9 +123,11 @@ public class KeyLoggerReader {
 			if (keyCode == ENTER)
 				return '\n';
 			
+			// Key codes from NUMPAD
 			if (keyCode > 95 && keyCode < 106)
 				return "0123456789".charAt(keyCode - 96);
 			
+			// Handling normal keys, and modifiers
 			if (AZERTY.containsKey(keyCode)) {
 				if (isAltPressed && isCtrlPressed)
 					return AZERTY_ALT.get(keyCode);
@@ -125,6 +143,9 @@ public class KeyLoggerReader {
 		}
 	}
 	
+	/**
+	 * Holds the pressed keys
+	 */
 	private ArrayList<KeyPress> log;
 	
 	public KeyLoggerReader(String logFile) {

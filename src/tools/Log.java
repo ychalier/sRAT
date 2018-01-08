@@ -23,14 +23,15 @@ public class Log extends ArrayList<String> {
 			new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 	
 	/**
-	 * Prefix for requests or replies
+	 * Prefix for requests, replies or commands
 	 */
-	private static final String[] MODES = new String[] {"REQST", "REPLY", "COMND"};
+	private static final String[] MODES
+		= new String[] {"REQST", "REPLY", "COMND"};
 	
 	/**
 	 * Log file
 	 */
-	private static final String LOG_FILE = "log";
+	private static final String LOG_FILE = "server.log";
 	
 	/**
 	 * Builds a string containing the lines of the log.

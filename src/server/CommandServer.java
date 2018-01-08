@@ -173,7 +173,7 @@ public class CommandServer implements RequestHandler, CommandHandler {
 	public void handle(Connection conn)
 			throws IOException {
 		
-		String request  = null;
+		String request  = null; // Saving request for the check after the loop
 		String response = null;
 		while (response == null
 				|| !response.startsWith(ServerCommand.DONE)) {
@@ -192,6 +192,7 @@ public class CommandServer implements RequestHandler, CommandHandler {
 				// Getting response from command
 				response = cmdsClient.get(pCmd.cmd).exec(pCmd);
 				
+				// By precaution, should not impact execution
 				if (response != null) {
 				
 					// Logging response
@@ -235,6 +236,9 @@ public class CommandServer implements RequestHandler, CommandHandler {
 			
 		}
 		
+		// If the connection we are closing was simply
+		// used to send a KLOG, the current connection
+		// between client and server is not closed.
 		if (!request.startsWith("KLOG"))
 			clientConnected = false;
 		
