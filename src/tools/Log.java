@@ -25,7 +25,7 @@ public class Log extends ArrayList<String> {
 	/**
 	 * Prefix for requests or replies
 	 */
-	private static final String[] MODES = new String[] {"REQST", "REPLY"};
+	private static final String[] MODES = new String[] {"REQST", "REPLY", "COMND"};
 	
 	/**
 	 * Log file

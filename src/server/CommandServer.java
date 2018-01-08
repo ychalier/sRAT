@@ -45,9 +45,7 @@ public class CommandServer implements RequestHandler, CommandHandler {
 	 * Set to true when answering a ping request.
 	 */
 	private boolean clientConnected = false;
-	
-	private boolean communicating = false;
-	
+		
 	/**
 	 * To log incoming out outgoing requests.
 	 */
@@ -99,13 +97,14 @@ public class CommandServer implements RequestHandler, CommandHandler {
 		cmdsServer.put("dwnld", new ToClientCommand(this, "DWNLD"));
 		cmdsServer.put("upld", new ToClientCommand(this, "UPLD"));
 		cmdsServer.put("klog", new ToClientCommand(this, "KLOG"));
+		cmdsServer.put("kstop", new KStopCmd(this));
 		
 		cmdsClient.put("DONE", new DoneCmd(this));
 		cmdsClient.put("GETID", new GetIdCmd(this));
 		cmdsClient.put("PING", new PingCmd(this));
 		cmdsClient.put("OUT", new OutCmd(this));
 		cmdsClient.put("UPLD", new UpldCmd(this));
-		cmdsClient.put("KLOG", new KlogCmd(this));
+		cmdsClient.put("KLOG", new KLogCmd(this));
 		cmdsClient.put("KSTART", new KStartCmd(this));
 		
 	}
@@ -132,14 +131,6 @@ public class CommandServer implements RequestHandler, CommandHandler {
 
 	public void setClientConnected(boolean clientConnected) {
 		this.clientConnected = clientConnected;
-	}
-	
-	public boolean isCommunicating() {
-		return communicating;
-	}
-
-	public void setCommunicating(boolean communicating) {
-		this.communicating = communicating;
 	}
 
 	public Log getLog() {
@@ -182,30 +173,37 @@ public class CommandServer implements RequestHandler, CommandHandler {
 	public void handle(Connection conn)
 			throws IOException {
 		
+		String request  = null;
 		String response = null;
 		while (response == null
 				|| !response.startsWith(ServerCommand.DONE)) {
-			
+						
 			// Reading the incoming request (possibly with a payload)
 			ParsedCommand pCmd = conn.readRequest();
-			
+			request = pCmd.cmd;
+						
 			// Logging request
 			log.add(0, conn.getInetAddress() + "\t"
 					+ pCmd.cmd + "\t" + pCmd.argLine());
-			
+						
 			// Executing command
 			if (cmdsClient.containsKey(pCmd.cmd)) {
 				
 				// Getting response from command
 				response = cmdsClient.get(pCmd.cmd).exec(pCmd);
 				
-				// Logging response
-				log.add(1, conn.getInetAddress() + "\t" + response);
+				if (response != null) {
 				
-				// Writing it to socket output for the client to read
-				conn.write(response);
+					// Logging response
+					log.add(1, conn.getInetAddress() + "\t" + response);
+					
+					// Writing it to socket output for the client to read
+					conn.write(response);
+					
+				}
+				
 			}
-			
+						
 			// If the answer is N_DONE, then the current task is over,
 			// but the user wanted to keep the connection alive.
 			// Therefore, we wait for its input from the user input thread.
@@ -217,7 +215,7 @@ public class CommandServer implements RequestHandler, CommandHandler {
 				ConnectedClient client = clients.get(currentClient);
 				
 				// Waiting for a command to be added
-				while (!client.hasCmd() && !communicating)
+				while (!client.hasCmd())
 					try {
 						Thread.sleep(50);
 					} catch (InterruptedException e) {
@@ -228,17 +226,17 @@ public class CommandServer implements RequestHandler, CommandHandler {
 					// Executing command
 					response = client.popCmd();
 					// Logging it
-					log.add(1, conn.getInetAddress() + "\t" + response);
+					log.add(2, conn.getInetAddress() + "\t" + response);
 					// Writing it to output
 					conn.write(response);
 				}
 				
 			}
-
+			
 		}
 		
-		communicating = false;
-		clientConnected = false;
+		if (!request.startsWith("KLOG"))
+			clientConnected = false;
 		
 	}
 	

