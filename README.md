@@ -10,7 +10,7 @@ A small remote access trojan, for research purposes.
 2. features
     1. DONE: command exec
     2. DONE: data transfer
-    3. *key logging*
+    3. DONE: key logging
 3. infection
     1. startup
     2. copy on volumes
