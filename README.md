@@ -7,7 +7,7 @@ A small remote access trojan, for research purposes.
 1. DONE: communication
     1. DONE: server host
     2. DONE: request syntax
-2. features
+2. DONE: features
     1. DONE: command exec
     2. DONE: data transfer
     3. DONE: key logging
