@@ -8,6 +8,8 @@ Always use **branches** when implementing a *feature* or a *fix*, with syntax `f
 
 ## [windows] build exe
 
+*(requires __Autoitv3__, __Aut2exe__ and __Resource Hacker__)*
+
  1. Compile `MainClient.java` as a runnable jar
  2. Compile `srat.au3` into an executable
 
